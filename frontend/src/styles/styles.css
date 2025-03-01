@@ -1,6 +1,79 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --retro-black: #2c2137;
+  --retro-primary: #a7a7ce;
+  --retro-secondary: #7d7d9c;
+  --retro-accent: #b4a7d6;
+  --retro-shadow: #534b5e;
+  --retro-highlight: #c9c9e6;
+  --retro-background: #1a1625;
+
+  /* New complementary colors */
+  --retro-complement: #ceb76a; /* Golden complement to purple */
+  --retro-complement-dark: #8b7839;
+  --retro-complement-light: #ffe7a3;
+  --retro-success: #7ab992; /* Soft sage green */
+  --retro-error: #d67676; /* Soft red */
+}
+
+body {
+  background-color: var(--retro-background);
+  color: var(--retro-primary);
+  font-family: "Press Start 2P", system-ui;
+  text-shadow: 2px 2px var(--retro-shadow);
+}
+
+.retro-container {
+  border: 4px solid var(--retro-primary);
+  box-shadow: 4px 4px 0 var(--retro-shadow),
+    inset 4px 4px 0 var(--retro-secondary);
+  padding: 1rem;
+  image-rendering: pixelated;
+  background-color: var(--retro-black);
+  border-radius: 4px;
+}
+
+.retro-button {
+  background-color: var(--retro-black);
+  border: 3px solid var(--retro-primary);
+  color: var (--retro-primary);
+  padding: 0.5rem 1rem;
+  font-family: "Press Start 2P";
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.1s;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.retro-button:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--retro-complement);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.retro-button:hover {
+  background-color: var(--retro-complement);
+  color: var(--retro-black);
+  border-color: var(--retro-complement-light);
+  text-shadow: none;
+}
+
+.retro-button:active {
+  transform: translate(2px, 2px);
+}
 
 .grid-cols-20 {
   grid-template-columns: repeat(20, minmax(0, 1fr));
@@ -8,4 +81,90 @@
 
 .aspect-square {
   aspect-ratio: 1 / 1;
+}
+
+.grid-cell {
+  border: 2px solid var(--retro-secondary);
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+
+.grid-cell:hover {
+  transform: scale(1.1);
+  z-index: 1;
+  box-shadow: 0 0 8px var(--retro-complement);
+}
+
+input {
+  background-color: var(--retro-black) !important;
+  border-color: var(--retro-primary) !important;
+  color: var(--retro-primary) !important;
+}
+
+input::placeholder {
+  color: var(--retro-secondary) !important;
+}
+
+select option {
+  background-color: var(--retro-black);
+  color: var(--retro-primary);
+  border: none;
+}
+
+select:focus {
+  border-color: var(--retro-highlight);
+  outline: none;
+}
+
+.retro-container label {
+  color: var(--retro-highlight);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Custom scrollbar for the dropdown */
+select::-webkit-scrollbar {
+  width: 8px;
+}
+
+select::-webkit-scrollbar-track {
+  background: var(--retro-black);
+}
+
+select::-webkit-scrollbar-thumb {
+  background: var(--retro-primary);
+  border-radius: 4px;
+}
+
+select::-webkit-scrollbar-thumb:hover {
+  background: var(--retro-highlight);
+}
+
+/* Add highlighting for active elements */
+.active-player {
+  border-color: var(--retro-complement) !important;
+  background-color: var(--retro-complement-dark) !important;
+  color: var(--retro-complement-light) !important;
+}
+
+/* Success and error states */
+.success-text {
+  color: var(--retro-success);
+}
+
+.error-text {
+  color: var(--retro-error);
+}
+
+/* Update input focus states */
+input:focus,
+select:focus {
+  border-color: var(--retro-complement) !important;
+  box-shadow: 0 0 0 2px var(--retro-complement-dark);
+}
+
+/* Add golden glow effect for important elements */
+.highlight-glow {
+  box-shadow: 0 0 10px var(--retro-complement);
+  border-color: var(--retro-complement-light);
 }

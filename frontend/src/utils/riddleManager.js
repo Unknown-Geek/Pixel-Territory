@@ -1,4 +1,4 @@
-import { generateRiddle } from './geminiService';
+import { generateRiddle } from "./geminiService";
 
 class RiddleManager {
   constructor() {
@@ -10,7 +10,7 @@ class RiddleManager {
   async generateRiddleBatch(count = 50) {
     if (this.isGenerating) return;
     this.isGenerating = true;
-    
+
     const newRiddles = [];
     for (let i = 0; i < count; i++) {
       try {
@@ -19,10 +19,10 @@ class RiddleManager {
           newRiddles.push({ ...riddle, id: Date.now() + i });
         }
       } catch (error) {
-        console.error('Error generating riddle:', error);
+        console.error("Error generating riddle:", error);
       }
     }
-    
+
     this.riddles.push(...newRiddles);
     this.isGenerating = false;
   }
@@ -37,7 +37,9 @@ class RiddleManager {
     const playerSolved = this.playerHistory.get(playerId);
 
     // Find a riddle the player hasn't seen
-    const availableRiddle = this.riddles.find(riddle => !playerSolved.has(riddle.id));
+    const availableRiddle = this.riddles.find(
+      (riddle) => !playerSolved.has(riddle.id)
+    );
 
     // If running low on unseen riddles, generate more
     if (this.riddles.length - playerSolved.size < 10) {
@@ -47,9 +49,9 @@ class RiddleManager {
     // If no available riddle, wait for new batch or use fallback
     if (!availableRiddle) {
       return {
-        id: 'fallback',
+        id: "fallback",
         question: "What goes up but never comes down?",
-        answer: "age"
+        answer: "age",
       };
     }
 
