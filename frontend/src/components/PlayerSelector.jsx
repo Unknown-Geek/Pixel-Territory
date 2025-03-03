@@ -22,7 +22,7 @@ export const PlayerSelector = ({
 
   return (
     <div className="max-w-3xl mx-auto mb-4">
-      <div className="retro-container">
+      <div className="retro-container w-full overflow-hidden">
         <div className="flex justify-between items-center mb-4">
           <div className="text-sm">ACTIVE PLAYERS</div>
           <form onSubmit={handleAddPlayer} className="flex gap-2">
@@ -31,7 +31,7 @@ export const PlayerSelector = ({
               value={newPlayerName}
               onChange={(e) => setNewPlayerName(e.target.value)}
               placeholder="ENTER NAME"
-              className="p-2 bg-[var(--retro-black)] border-2 border-[var(--retro-primary)] text-[var(--retro-primary)] focus:border-[var(--retro-highlight)] outline-none"
+              className="p-2 bg-[var(--retro-black)] border-2 border-[var(--retro-primary)] text-[var(--retro-primary)] focus:border-[var(--retro-highlight)] outline-none w-full"
             />
             <button type="submit" className="retro-button">
               ADD
