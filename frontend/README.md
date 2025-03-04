@@ -1,8 +1,3 @@
-Can you create a workspace for a game using Devvit, Reddit's developer platform using the Interactive Posts feature.
-Use react+vite (only jsx) for frontend and flask for backend(if any needed). For any database usees make use of mongodb for the same.
-
-this is the game idea:
-
 # Pixel Territory - Implementation Plan
 
 Let's develop a comprehensive implementation plan for your "Pixel Territory" game for the Reddit Hackathon:
