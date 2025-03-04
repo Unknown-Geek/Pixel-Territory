@@ -1,23 +1,9 @@
 import React, { useState } from "react";
-
-const RIDDLES = [
-  {
-    question:
-      "What has keys, but no locks; space, but no room; and you can enter, but not go in?",
-    answer: "keyboard",
-  },
-  {
-    question: "What gets wetter and wetter the more it dries?",
-    answer: "towel",
-  },
-  // Add more riddles here
-];
+import { getRandomRiddle } from "../utils/riddleService";
 
 export const RiddleModal = ({ isOpen, onClose, onCorrectAnswer }) => {
   const [answer, setAnswer] = useState("");
-  const [currentRiddle] = useState(
-    () => RIDDLES[Math.floor(Math.random() * RIDDLES.length)]
-  );
+  const [currentRiddle] = useState(() => getRandomRiddle());
 
   const handleSubmit = (e) => {
     e.preventDefault();
