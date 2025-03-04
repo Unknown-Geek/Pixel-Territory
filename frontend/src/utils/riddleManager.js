@@ -1,68 +1,58 @@
-import { generateRiddle } from "./geminiService";
+import { getRandomQuestion } from "./questions";
 
 class RiddleManager {
   constructor() {
-    this.riddles = [];
-    this.playerHistory = new Map(); // Track riddles shown to each player
-    this.isGenerating = false;
+    this.riddlePool = [];
+    this.solvedRiddles = {};
   }
 
-  async generateRiddleBatch(count = 50) {
-    if (this.isGenerating) return;
-    this.isGenerating = true;
+  generateRiddleBatch() {
+    // Generate a pool of riddles to use
+    const riddleCount = 20;
+    this.riddlePool = [];
 
-    const newRiddles = [];
-    for (let i = 0; i < count; i++) {
-      try {
-        const riddle = await generateRiddle();
-        if (riddle) {
-          newRiddles.push({ ...riddle, id: Date.now() + i });
-        }
-      } catch (error) {
-        console.error("Error generating riddle:", error);
-      }
+    for (let i = 0; i < riddleCount; i++) {
+      const question = getRandomQuestion();
+      this.riddlePool.push({
+        id: `riddle-${Date.now()}-${i}`,
+        question: question.question,
+        answer: question.answer,
+      });
     }
-
-    this.riddles.push(...newRiddles);
-    this.isGenerating = false;
   }
 
-  async getNextRiddle(playerId) {
-    // Initialize player history if not exists
-    if (!this.playerHistory.has(playerId)) {
-      this.playerHistory.set(playerId, new Set());
-    }
-
-    // Get player's solved riddles
-    const playerSolved = this.playerHistory.get(playerId);
-
-    // Find a riddle the player hasn't seen
-    const availableRiddle = this.riddles.find(
-      (riddle) => !playerSolved.has(riddle.id)
-    );
-
-    // If running low on unseen riddles, generate more
-    if (this.riddles.length - playerSolved.size < 10) {
+  async getNextRiddle(playerName) {
+    // Ensure we have riddles
+    if (this.riddlePool.length === 0) {
       this.generateRiddleBatch();
     }
 
-    // If no available riddle, wait for new batch or use fallback
-    if (!availableRiddle) {
-      return {
-        id: "fallback",
-        question: "What goes up but never comes down?",
-        answer: "age",
-      };
+    // If player hasn't solved any riddles yet, initialize their record
+    if (!this.solvedRiddles[playerName]) {
+      this.solvedRiddles[playerName] = [];
     }
 
-    return availableRiddle;
+    // Find a riddle the player hasn't solved yet
+    const unsolved = this.riddlePool.filter(
+      (riddle) => !this.solvedRiddles[playerName].includes(riddle.id)
+    );
+
+    // If all riddles are solved, generate new batch
+    if (unsolved.length === 0) {
+      this.generateRiddleBatch();
+      return this.getNextRiddle(playerName);
+    }
+
+    // Return a random unsolved riddle
+    const randomIndex = Math.floor(Math.random() * unsolved.length);
+    return unsolved[randomIndex];
   }
 
-  markRiddleSolved(playerId, riddleId) {
-    if (!this.playerHistory.has(playerId)) {
-      this.playerHistory.set(playerId, new Set());
+  markRiddleSolved(playerName, riddleId) {
+    if (!this.solvedRiddles[playerName]) {
+      this.solvedRiddles[playerName] = [];
     }
-    this.playerHistory.get(playerId).add(riddleId);
+    this.solvedRiddles[playerName].push(riddleId);
   }
 }
 

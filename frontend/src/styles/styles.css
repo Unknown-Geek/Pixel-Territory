@@ -6,19 +6,24 @@
 
 :root {
   --retro-black: #2c2137;
-  --retro-primary: #a7a7ce;
-  --retro-secondary: #7d7d9c;
-  --retro-accent: #b4a7d6;
-  --retro-shadow: #534b5e;
-  --retro-highlight: #c9c9e6;
-  --retro-background: #1a1625;
+  --retro-primary: #ff7edb; /* More vibrant pink/purple */
+  --retro-secondary: #8b6d9c;
+  --retro-accent: #2de2e6; /* Bright teal */
+  --retro-shadow: #3a2c4d;
+  --retro-highlight: #f6f6ff;
+  --retro-background: #0f0a1e;
 
-  /* New complementary colors */
-  --retro-complement: #ceb76a; /* Golden complement to purple */
-  --retro-complement-dark: #8b7839;
-  --retro-complement-light: #ffe7a3;
-  --retro-success: #7ab992; /* Soft sage green */
-  --retro-error: #d67676; /* Soft red */
+  /* Enhanced complementary colors */
+  --retro-complement: #ffd319; /* Vibrant yellow */
+  --retro-complement-dark: #d6a400;
+  --retro-complement-light: #fff5c0;
+  --retro-success: #3bf75f; /* Neon green */
+  --retro-error: #fe4450; /* Bright red */
+
+  /* Additional colors */
+  --retro-cyan: #0ff0fc;
+  --retro-purple: #9700cc;
+  --retro-orange: #ff901f;
 }
 
 body {
@@ -26,30 +31,55 @@ body {
   color: var(--retro-primary);
   font-family: "Press Start 2P", system-ui;
   text-shadow: 2px 2px var(--retro-shadow);
+  image-rendering: pixelated;
+  background-image: linear-gradient(
+      rgba(15, 10, 30, 0.9),
+      rgba(15, 10, 30, 0.9)
+    ),
+    url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h20v20H0V0zm20 20h20v20H20V20z' fill='%233a2c4d' fill-opacity='0.2' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
 
 .retro-container {
   border: 4px solid var(--retro-primary);
-  box-shadow: 4px 4px 0 var(--retro-shadow),
+  box-shadow: 0 0 10px var(--retro-primary), 4px 4px 0 var(--retro-shadow),
     inset 4px 4px 0 var(--retro-secondary);
-  padding: 1rem;
+  padding: 1.5rem;
   image-rendering: pixelated;
   background-color: var(--retro-black);
   border-radius: 4px;
+  position: relative;
+}
+
+.retro-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    var(--retro-primary),
+    var(--retro-accent),
+    var(--retro-primary)
+  );
 }
 
 .retro-button {
   background-color: var(--retro-black);
   border: 3px solid var(--retro-primary);
-  color: var (--retro-primary);
-  padding: 0.5rem 1rem;
+  color: var(--retro-primary);
+  padding: 0.75rem 1.25rem;
   font-family: "Press Start 2P";
+  font-size: 0.85rem;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.1s;
   border-radius: 4px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 0 5px var(--retro-primary), 3px 3px 0 var(--retro-shadow);
+  text-shadow: 1px 1px var(--retro-shadow);
 }
 
 .retro-button:after {
@@ -65,14 +95,17 @@ body {
 }
 
 .retro-button:hover {
-  background-color: var(--retro-complement);
+  background-color: var(--retro-primary);
   color: var(--retro-black);
-  border-color: var(--retro-complement-light);
+  border-color: var(--retro-highlight);
   text-shadow: none;
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px var(--retro-primary), 3px 5px 0 var(--retro-shadow);
 }
 
 .retro-button:active {
-  transform: translate(2px, 2px);
+  transform: translate(3px, 3px);
+  box-shadow: none;
 }
 
 .grid-cols-20 {
@@ -92,79 +125,216 @@ body {
 .grid-cell:hover {
   transform: scale(1.1);
   z-index: 1;
-  box-shadow: 0 0 8px var(--retro-complement);
+  box-shadow: 0 0 12px var(--retro-accent);
 }
 
-input {
+input,
+select {
   background-color: var(--retro-black) !important;
-  border-color: var(--retro-primary) !important;
-  color: var(--retro-primary) !important;
+  border: 3px solid var(--retro-primary) !important;
+  color: var(--retro-highlight) !important;
+  padding: 0.75rem !important;
+  font-family: "Press Start 2P" !important;
+  font-size: 0.8rem !important;
+  box-shadow: inset 2px 2px 0 var(--retro-shadow) !important;
+  border-radius: 4px !important;
 }
 
 input::placeholder {
   color: var(--retro-secondary) !important;
+  opacity: 0.7;
 }
 
 select option {
   background-color: var(--retro-black);
   color: var(--retro-primary);
   border: none;
+  padding: 0.5rem;
 }
 
-select:focus {
-  border-color: var(--retro-highlight);
+select:focus,
+input:focus {
+  border-color: var(--retro-accent) !important;
   outline: none;
+  box-shadow: 0 0 8px var(--retro-accent), inset 2px 2px 0 var(--retro-shadow) !important;
 }
 
 .retro-container label {
   color: var(--retro-highlight);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+  display: block;
+  text-shadow: 2px 2px var(--retro-shadow);
 }
 
-/* Custom scrollbar for the dropdown */
-select::-webkit-scrollbar {
-  width: 8px;
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
 }
 
-select::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: var(--retro-black);
+  border: 1px solid var(--retro-secondary);
 }
 
-select::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: var(--retro-primary);
   border-radius: 4px;
+  border: 2px solid var(--retro-black);
 }
 
-select::-webkit-scrollbar-thumb:hover {
-  background: var(--retro-highlight);
+::-webkit-scrollbar-thumb:hover {
+  background: var(--retro-accent);
 }
 
-/* Add highlighting for active elements */
+/* Active elements */
 .active-player {
-  border-color: var(--retro-complement) !important;
-  background-color: var(--retro-complement-dark) !important;
-  color: var(--retro-complement-light) !important;
+  border-color: var(--retro-accent) !important;
+  background-color: var(--retro-shadow) !important;
+  color: var(--retro-cyan) !important;
+  box-shadow: 0 0 8px var(--retro-accent) !important;
 }
 
 /* Success and error states */
 .success-text {
   color: var(--retro-success);
+  text-shadow: 0 0 5px var(--retro-success);
 }
 
 .error-text {
   color: var(--retro-error);
+  text-shadow: 0 0 5px var(--retro-error);
 }
 
-/* Update input focus states */
-input:focus,
-select:focus {
-  border-color: var(--retro-complement) !important;
-  box-shadow: 0 0 0 2px var(--retro-complement-dark);
+/* Retro header styles */
+.retro-header {
+  color: var(--retro-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-shadow: 2px 2px var(--retro-shadow), 4px 4px 0px var(--retro-black);
+  position: relative;
+  display: inline-block;
+}
+
+.retro-header::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  color: var(--retro-primary);
+  z-index: -1;
+}
+
+/* Scanlines overlay effect */
+.scanlines {
+  position: relative;
+}
+
+.scanlines:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.1) 51%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* Add golden glow effect for important elements */
 .highlight-glow {
-  box-shadow: 0 0 10px var(--retro-complement);
-  border-color: var(--retro-complement-light);
+  box-shadow: 0 0 15px var(--retro-complement);
+  border-color: var(--retro-complement);
+  animation: pulsate 2s infinite alternate;
+}
+
+@keyframes pulsate {
+  0% {
+    box-shadow: 0 0 5px var(--retro-complement);
+  }
+  100% {
+    box-shadow: 0 0 20px var(--retro-complement),
+      0 0 40px var(--retro-complement-light);
+  }
+}
+
+/* Day selector styles for leaderboard */
+.retro-day-selector {
+  display: inline-block;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.7rem;
+  background-color: var(--retro-black);
+  border: 2px solid var(--retro-secondary);
+  color: var(--retro-secondary);
+  margin: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retro-day-selector.active {
+  background-color: var(--retro-primary);
+  color: var(--retro-black);
+  border-color: var(--retro-highlight);
+  text-shadow: none;
+  transform: scale(1.05);
+  box-shadow: 0 0 8px var(--retro-primary);
+}
+
+/* Leaderboard item styling */
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  background-color: rgba(44, 33, 55, 0.7);
+  border-left: 4px solid var(--retro-accent);
+  transition: all 0.2s;
+}
+
+.leaderboard-item:hover {
+  transform: translateX(5px);
+  background-color: rgba(59, 44, 73, 0.9);
+}
+
+/* Close button styling */
+.retro-close {
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--retro-primary);
+  cursor: pointer;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  text-shadow: 2px 2px var(--retro-shadow);
+  transition: all 0.2s;
+}
+
+.retro-close:hover {
+  color: var(--retro-error);
+  transform: scale(1.2);
+  text-shadow: 0 0 5px var(--retro-error);
+}
+
+/* Modal backdrop */
+.retro-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 10, 30, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
 }

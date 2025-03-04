@@ -2,123 +2,166 @@ import { generateUniqueColor } from "./colors";
 
 const GRID_SIZE = 20;
 
-export const createNewGameState = () => ({
-  grid: Array(20)
-    .fill(null)
-    .map(() =>
-      Array(20)
-        .fill(null)
-        .map(() => ({ owner: null, color: "#e5e5e5" }))
-    ),
-  players: {},
-  gameActive: true,
-  dailyStats: [], // Store daily statistics
-  currentDay: new Date().toISOString().split("T")[0],
-});
+export const createNewGameState = () => {
+  const gridSize = 20;
+  const grid = [];
+
+  // Initialize an empty grid
+  for (let y = 0; y < gridSize; y++) {
+    const row = [];
+    for (let x = 0; x < gridSize; x++) {
+      row.push({
+        owner: null,
+        color: "#f0f0f0",
+        timestamp: null,
+      });
+    }
+    grid.push(row);
+  }
+
+  return {
+    grid,
+    players: {},
+    gameActive: true,
+    lastReset: Date.now(),
+  };
+};
 
 export const initializePlayer = (gameState, playerName, color) => {
   const newState = { ...gameState };
-  newState.players[playerName] = {
-    color,
-    cellCount: 0,
-    tokens: 20, // Starting tokens
-    lastAction: Date.now(),
-  };
+
+  if (!newState.players[playerName]) {
+    newState.players[playerName] = {
+      color,
+      cellCount: 0,
+      lastAction: Date.now(),
+      tokens: 20, // Start with some tokens
+    };
+  }
+
   return newState;
 };
 
 export const canClaimCell = (gameState, x, y, playerName) => {
-  // Check bounds
-  if (x < 0 || y < 0 || x >= GRID_SIZE || y >= GRID_SIZE) return false;
+  // Check boundaries
+  if (
+    x < 0 ||
+    y < 0 ||
+    x >= gameState.grid[0].length ||
+    y >= gameState.grid.length
+  ) {
+    return false;
+  }
+
+  const player = gameState.players[playerName];
+  if (!player) return false;
 
   const cell = gameState.grid[y][x];
-  const player = gameState.players[playerName];
 
-  // Check if player has enough tokens
-  if (player.tokens < 10) return false;
+  // If it's the player's own cell, they can always update it
+  if (cell.owner === playerName) {
+    return true;
+  }
 
-  // Calculate attacker's power based on time since last action
-  const timeSinceLastAction = (Date.now() - player.lastAction) / 60000; // minutes
-  const attackerPower = Math.min(10, Math.floor(timeSinceLastAction) + 1); // +1 power per minute, max 10
+  // If it's unclaimed
+  if (!cell.owner) {
+    // First cell can be claimed anywhere
+    if (player.cellCount === 0) {
+      return true;
+    }
 
-  // New players can claim any unclaimed cell
-  const playerCells = countPlayerCells(gameState, playerName);
-  if (playerCells === 0 && !cell.owner) return true;
+    // Check if adjacent to owned cell
+    return hasAdjacentOwnedCell(gameState, x, y, playerName);
+  }
 
-  // For existing players, check adjacency (orthogonal only)
-  const hasAdjacentTerritory = [
-    [x - 1, y], // Left
-    [x + 1, y], // Right
-    [x, y - 1], // Top
-    [x, y + 1], // Bottom
-  ].some(
-    ([adjX, adjY]) =>
-      adjX >= 0 &&
-      adjX < GRID_SIZE &&
-      adjY >= 0 &&
-      adjY < GRID_SIZE &&
-      gameState.grid[adjY][adjX].owner === playerName
-  );
+  // If it's an opponent's cell
+  if (cell.owner && cell.owner !== playerName) {
+    // Must be adjacent to player's own cell
+    if (!hasAdjacentOwnedCell(gameState, x, y, playerName)) {
+      return false;
+    }
 
-  if (!hasAdjacentTerritory) return false;
+    // Check power levels
+    const cellAge = (Date.now() - cell.timestamp) / 60000;
+    const defenderPower = Math.min(10, Math.floor(cellAge) + 1);
 
-  // If cell is unclaimed, can take it
-  if (!cell.owner) return true;
+    const playerTimeSince = (Date.now() - player.lastAction) / 60000;
+    const attackerPower = Math.min(10, Math.floor(playerTimeSince) + 1);
 
-  // If cell is already owned by player, can't claim
-  if (cell.owner === playerName) return false;
+    // Attacker must have more power
+    return attackerPower > defenderPower;
+  }
 
-  // Calculate defender's power
-  const defenderLastAction = new Date(cell.timestamp).getTime();
-  const defenderHoldTime = (Date.now() - defenderLastAction) / 60000;
-  const defenderPower = Math.min(10, Math.floor(defenderHoldTime) + 1);
+  return false;
+};
 
-  // Can claim if attacker's power is greater
-  return attackerPower > defenderPower;
+export const hasAdjacentOwnedCell = (gameState, x, y, playerName) => {
+  const directions = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ];
+
+  return directions.some(([dx, dy]) => {
+    const nx = x + dx;
+    const ny = y + dy;
+
+    // Check boundaries
+    if (
+      nx < 0 ||
+      ny < 0 ||
+      nx >= gameState.grid[0].length ||
+      ny >= gameState.grid.length
+    ) {
+      return false;
+    }
+
+    return gameState.grid[ny][nx].owner === playerName;
+  });
 };
 
 export const claimCell = (gameState, x, y, playerName) => {
-  if (!canClaimCell(gameState, x, y, playerName)) return gameState;
+  if (!canClaimCell(gameState, x, y, playerName)) {
+    return gameState;
+  }
 
   const newState = JSON.parse(JSON.stringify(gameState));
+  const player = newState.players[playerName];
+  const cell = newState.grid[y][x];
 
   // Deduct tokens for claiming
-  newState.players[playerName].tokens -= 10;
-  newState.players[playerName].lastAction = Date.now();
+  player.tokens -= 10;
 
-  // Update the cell - make sure timestamp is properly set
-  newState.grid[y][x] = {
-    owner: playerName,
-    color: gameState.players[playerName].color,
-    timestamp: Date.now(), // This is critical for power calculation
-    power: 1, // Initial power of newly claimed cell
-  };
+  // Update player stats
+  player.lastAction = Date.now();
 
-  // Update cell counts
-  if (gameState.grid[y][x].owner) {
-    // Decrease previous owner's count if cell was owned
-    newState.players[gameState.grid[y][x].owner].cellCount--;
+  // If this cell was already owned by someone else, decrease their count
+  if (cell.owner && cell.owner !== playerName) {
+    newState.players[cell.owner].cellCount--;
   }
-  newState.players[playerName].cellCount++;
+
+  // If this is a new cell for this player (not one they already owned)
+  if (cell.owner !== playerName) {
+    player.cellCount++;
+  }
+
+  // Update the cell
+  cell.owner = playerName;
+  cell.color = player.color;
+  cell.timestamp = Date.now();
 
   return newState;
 };
 
 export const addTokens = (gameState, playerName, amount) => {
-  const newState = { ...gameState };
-  newState.players[playerName].tokens =
-    (newState.players[playerName].tokens || 0) + amount;
-  return newState;
-};
+  if (!gameState.players[playerName]) return gameState;
 
-const countPlayerCells = (gameState, playerName) => {
-  return gameState.grid.reduce((count, row) => {
-    return (
-      count +
-      row.reduce(
-        (rowCount, cell) => rowCount + (cell.owner === playerName ? 1 : 0),
-        0
-      )
-    );
-  }, 0);
+  const newState = { ...gameState };
+  newState.players[playerName] = {
+    ...newState.players[playerName],
+    tokens: (newState.players[playerName].tokens || 0) + amount,
+  };
+
+  return newState;
 };
