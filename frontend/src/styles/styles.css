@@ -338,3 +338,199 @@ input:focus {
   justify-content: center;
   z-index: 50;
 }
+
+/* Alliance specific styles */
+.alliance-cell {
+  position: relative;
+  overflow: visible;
+}
+
+.alliance-cell::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px dashed var(--retro-success);
+  animation: pulse 2s infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
+.alliance-invitation {
+  background: linear-gradient(135deg, var(--retro-black), var(--retro-shadow));
+  border-left: 4px solid var(--retro-complement);
+  padding: 1rem;
+  margin: 1rem 0;
+  position: relative;
+}
+
+.alliance-invitation::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(to right, var(--retro-complement), transparent);
+}
+
+.alliance-member {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--retro-shadow);
+  transition: all 0.2s;
+}
+
+.alliance-member:hover {
+  background-color: rgba(45, 226, 230, 0.1);
+}
+
+.alliance-leader {
+  position: relative;
+}
+
+.alliance-leader::after {
+  content: "👑";
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  font-size: 0.8rem;
+}
+
+/* Alliance score display */
+.alliance-score {
+  font-family: "Press Start 2P", monospace;
+  color: var(--retro-accent);
+  text-shadow: 2px 2px var(--retro-shadow);
+  font-size: 1.2rem;
+  letter-spacing: 0.05em;
+}
+
+/* Power-up related styles */
+.power-up-target {
+  position: relative;
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--retro-accent);
+  z-index: 1;
+}
+
+.power-up-target:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 12px var(--retro-complement);
+  z-index: 2;
+}
+
+.power-up-target-available {
+  opacity: 0.8;
+}
+
+.power-up-item {
+  border: 2px solid var(--retro-primary);
+  background-color: rgba(44, 33, 55, 0.7);
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.power-up-item:hover {
+  border-color: var(--retro-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 0 8px var(--retro-accent);
+}
+
+.power-up-active {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 126, 219, 0.2),
+    rgba(45, 226, 230, 0.2)
+  );
+  border-color: var(--retro-complement);
+  box-shadow: 0 0 12px var(--retro-complement);
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+  from {
+    box-shadow: 0 0 5px var(--retro-accent), 0 0 10px var(--retro-accent);
+  }
+  to {
+    box-shadow: 0 0 10px var(--retro-accent), 0 0 20px var(--retro-accent),
+      0 0 30px var(--retro-complement);
+  }
+}
+
+/* Power-up targeting styles */
+.bomb-preview {
+  position: relative;
+}
+
+.bomb-preview::after {
+  content: "";
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  border: 2px dashed var(--retro-error);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.7;
+  animation: pulse 1s infinite alternate;
+}
+
+.color-bomb-preview {
+  position: relative;
+}
+
+.color-bomb-preview::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border: 2px dashed var(--retro-complement);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.7;
+  animation: pulse 1s infinite alternate;
+}
+
+/* Power-up active state */
+.power-up-active-shield {
+  box-shadow: 0 0 15px var(--retro-accent), inset 0 0 10px var(--retro-accent);
+  z-index: 5;
+}
+
+.power-up-target.shield-valid {
+  box-shadow: 0 0 15px var(--retro-success);
+  border-color: var(--retro-success);
+}
+
+.power-up-target.shield-invalid {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.power-up-target:hover {
+  transform: scale(1.15);
+  z-index: 10;
+}

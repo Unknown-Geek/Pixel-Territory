@@ -15,6 +15,17 @@ import { generateUniqueColor } from "../utils/colors";
 import { TokenEarner } from "./TokenEarner";
 import { riddleManager } from "../utils/riddleManager";
 import { CellConfirmation } from "./CellConfirmation";
+import { PowerupInventory } from "./PowerupInventory";
+import { PowerupActivator } from "./PowerupActivator";
+import { PowerupDisplay } from "./PowerupDisplay";
+import {
+  generatePowerups,
+  applyShield,
+  applyBomb,
+  applyTeleport,
+  applyColorBomb,
+  POWERUP_TYPES,
+} from "../utils/powerupUtils";
 
 export const PixelTerritoryGame = () => {
   // Initialize with stored game state or create new one
@@ -30,11 +41,24 @@ export const PixelTerritoryGame = () => {
 
   const [showTokenEarner, setShowTokenEarner] = useState(false);
   const [pendingCellClaim, setPendingCellClaim] = useState(null);
+  const [activePowerup, setActivePowerup] = useState(null);
+  const [pendingPowerupType, setPendingPowerupType] = useState(null);
+  const [isPowerupTargetMode, setIsPowerupTargetMode] = useState(false);
+  const [powerupMessage, setPowerupMessage] = useState("");
 
   // Save game state to local storage whenever it changes
   useEffect(() => {
     localStorage.setItem("pixelTerritoryState", JSON.stringify(gameState));
   }, [gameState]);
+
+  // Generate daily power-ups
+  useEffect(() => {
+    // Check if it's a new day to generate power-ups
+    const updatedState = generatePowerups(gameState, 3); // Generate 3 power-ups
+    if (updatedState !== gameState) {
+      setGameState(updatedState);
+    }
+  }, []);
 
   // Initialize first player if not exists or load from storage
   useEffect(() => {
@@ -46,6 +70,7 @@ export const PixelTerritoryGame = () => {
         cellCount: 0,
         lastAction: Date.now(),
         tokens: 20, // Start with some tokens
+        powerups: [], // Initialize empty powerups array
       };
       setGameState(newState);
       localStorage.setItem("pixelTerritoryPlayer", currentPlayer);
@@ -66,8 +91,29 @@ export const PixelTerritoryGame = () => {
     riddleManager.generateRiddleBatch();
   }, []);
 
+  const showPowerupResult = (message, type = "success") => {
+    setPowerupMessage(message);
+
+    // Create a flashy visual effect
+    const grid = document.querySelector(".grid-cols-20");
+    if (grid) {
+      grid.classList.add("animate-pulse-glow");
+      setTimeout(() => {
+        grid.classList.remove("animate-pulse-glow");
+      }, 1500);
+    }
+
+    setTimeout(() => setPowerupMessage(""), 3000);
+  };
+
   const handleCellClick = (x, y) => {
     if (!currentPlayer || !gameState.gameActive) return;
+
+    // If in power-up target selection mode, handle power-up activation
+    if (isPowerupTargetMode && pendingPowerupType) {
+      handlePowerupTargetSelected(x, y);
+      return;
+    }
 
     const player = gameState.players[currentPlayer];
     if (!player) return;
@@ -138,6 +184,64 @@ export const PixelTerritoryGame = () => {
     }
   };
 
+  const handlePowerupActivate = (powerupType) => {
+    setActivePowerup(powerupType);
+  };
+
+  const handlePowerupConfirm = (powerupType) => {
+    if (powerupType === "shield") {
+      // Shield requires selecting one of the player's own cells
+      setPendingPowerupType(powerupType);
+      setIsPowerupTargetMode(true);
+    } else if (powerupType === "teleport") {
+      // Teleport requires selecting any cell on the grid
+      setPendingPowerupType(powerupType);
+      setIsPowerupTargetMode(true);
+    } else if (powerupType === "bomb") {
+      // Bomb requires selecting a target cell
+      setPendingPowerupType(powerupType);
+      setIsPowerupTargetMode(true);
+    } else if (powerupType === "colorBomb") {
+      // Color bomb requires selecting a target cell
+      setPendingPowerupType(powerupType);
+      setIsPowerupTargetMode(true);
+    }
+
+    setActivePowerup(null);
+  };
+
+  const handlePowerupTargetSelected = (x, y) => {
+    let updatedState = { ...gameState };
+    let resultMessage = "";
+    let success = true;
+
+    if (pendingPowerupType === "shield") {
+      // Check if the selected cell belongs to the player
+      if (gameState.grid[y][x].owner !== currentPlayer) {
+        showPowerupResult("You can only shield your own territories!", "error");
+        return;
+      }
+      updatedState = applyShield(gameState, x, y, currentPlayer);
+      resultMessage = "✓ Shield activated! Territory protected for 5 minutes.";
+    } else if (pendingPowerupType === "teleport") {
+      updatedState = applyTeleport(gameState, x, y, currentPlayer);
+      resultMessage = "✓ Teleport successful! Territory claimed.";
+    } else if (pendingPowerupType === "bomb") {
+      updatedState = applyBomb(gameState, x, y, currentPlayer);
+      resultMessage = "✓ Bomb deployed! Multiple territories claimed.";
+    } else if (pendingPowerupType === "colorBomb") {
+      updatedState = applyColorBomb(gameState, x, y, currentPlayer);
+      resultMessage = "✓ Color bomb activated! Adjacent territories converted.";
+    }
+
+    if (success) {
+      setGameState(updatedState);
+      setIsPowerupTargetMode(false);
+      setPendingPowerupType(null);
+      showPowerupResult(resultMessage);
+    }
+  };
+
   const handleConfirmClaim = () => {
     if (!pendingCellClaim) return;
 
@@ -171,6 +275,9 @@ export const PixelTerritoryGame = () => {
     setGameState(newState);
   };
 
+  const currentPlayerPowerups =
+    gameState.players[currentPlayer]?.powerups || [];
+
   return (
     <div className="min-h-screen bg-black p-4">
       <h1 className="text-3xl font-bold text-center mb-8 retro-text">
@@ -184,8 +291,24 @@ export const PixelTerritoryGame = () => {
           onAddPlayer={handleAddPlayer}
         />
         <div className="max-w-3xl mx-auto mb-4 flex justify-between items-center">
-          <div className="text-lg">
-            TOKENS: {gameState.players[currentPlayer]?.tokens || 0}
+          <div className="text-lg flex items-center gap-2">
+            <span>TOKENS: {gameState.players[currentPlayer]?.tokens || 0}</span>
+
+            {/* Display power-up counts */}
+            {Object.entries(
+              currentPlayerPowerups.reduce((acc, p) => {
+                acc[p.type] = (acc[p.type] || 0) + 1;
+                return acc;
+              }, {})
+            ).map(([type, count]) => (
+              <div
+                key={type}
+                className="ml-3"
+                title={POWERUP_TYPES[type.toUpperCase()]?.name || "Power-up"}
+              >
+                <PowerupDisplay type={type} count={count} size="sm" />
+              </div>
+            ))}
           </div>
           <button
             onClick={() => setShowTokenEarner(true)}
@@ -194,14 +317,32 @@ export const PixelTerritoryGame = () => {
             EARN TOKENS
           </button>
         </div>
+
+        {/* Power-up message */}
+        {powerupMessage && (
+          <div className="max-w-3xl mx-auto mb-4 p-3 bg-[var(--retro-black)] border-2 border-[var(--retro-accent)] text-center text-[var(--retro-accent)] animate-pulse-glow rounded">
+            <span className="text-lg">{powerupMessage}</span>
+          </div>
+        )}
+
         <TerritoryGrid
           gameState={gameState}
           playerName={currentPlayer}
           onCellClick={handleCellClick}
+          isPowerupTargetMode={isPowerupTargetMode}
+          powerupType={pendingPowerupType}
         />
+
+        {/* Power-up inventory */}
+        <PowerupInventory
+          playerPowerups={currentPlayerPowerups}
+          onActivatePowerup={handlePowerupActivate}
+        />
+
         <Leaderboard players={gameState.players} />
         <GameInfo />
       </div>
+
       {showTokenEarner && (
         <TokenEarner
           onTokensEarned={handleTokensEarned}
@@ -209,12 +350,47 @@ export const PixelTerritoryGame = () => {
           currentPlayer={currentPlayer}
         />
       )}
+
       {pendingCellClaim && (
         <CellConfirmation
           position={pendingCellClaim.position}
           onConfirm={handleConfirmClaim}
           onCancel={handleCancelClaim}
         />
+      )}
+
+      {activePowerup && (
+        <PowerupActivator
+          isOpen={!!activePowerup}
+          powerupType={activePowerup}
+          onClose={() => setActivePowerup(null)}
+          onTargetSelect={handlePowerupConfirm}
+          onActivate={handlePowerupConfirm}
+        />
+      )}
+
+      {isPowerupTargetMode && (
+        <div className="fixed bottom-4 left-0 right-0 bg-black bg-opacity-90 p-3 text-center text-white z-50">
+          <p>
+            {pendingPowerupType === "shield" &&
+              "Select one of your territories to shield"}
+            {pendingPowerupType === "teleport" &&
+              "Select any cell to teleport to"}
+            {pendingPowerupType === "bomb" &&
+              "Select target cell for your bomb"}
+            {pendingPowerupType === "colorBomb" &&
+              "Select target cell for your color bomb"}
+          </p>
+          <button
+            onClick={() => {
+              setIsPowerupTargetMode(false);
+              setPendingPowerupType(null);
+            }}
+            className="mt-2 px-4 py-1 bg-red-600 text-white rounded"
+          >
+            Cancel
+          </button>
+        </div>
       )}
     </div>
   );
