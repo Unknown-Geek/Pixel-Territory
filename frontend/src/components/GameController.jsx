@@ -1,166 +1,302 @@
 import React, { useState, useEffect } from "react";
 import { TerritoryGrid } from "./TerritoryGrid";
+import { PlayerStats } from "./PlayerStats";
+import { Leaderboard } from "./Leaderboard";
+import { AlliancePanel } from "./AlliancePanel";
+import { PowerupInventory } from "./PowerupInventory";
+import { ClaimConfirmationDialog } from "./ClaimConfirmationDialog";
 import { RiddleModal } from "./RiddleModal";
+import { RetroButton } from "./RetroButton";
+import { PowerupActivator } from "./PowerupActivator";
 import {
   createNewGameState,
-  initializePlayer,
   claimCell,
   addTokens,
+  initializePlayer,
 } from "../utils/gameState";
 import { generateUniqueColor } from "../utils/colors";
+import { applyPowerupEffect } from "../utils/powerupUtils";
 
 export const GameController = () => {
+  // Game state
   const [gameState, setGameState] = useState(() => {
     const storedState = localStorage.getItem("pixelTerritoryState");
     return storedState ? JSON.parse(storedState) : createNewGameState();
   });
 
-  const [playerName, setPlayerName] = useState("");
+  // Player state
+  const [currentPlayer, setCurrentPlayer] = useState(() => {
+    return localStorage.getItem("pixelTerritoryPlayer") || "Player1";
+  });
+
+  // UI state
+  const [selectedCell, setSelectedCell] = useState(null);
+  const [targetCell, setTargetCell] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [showRiddle, setShowRiddle] = useState(false);
-  const [isNewPlayer, setIsNewPlayer] = useState(true);
+  const [activePowerup, setActivePowerup] = useState(null);
+  const [isPowerupTargeting, setIsPowerupTargeting] = useState(false);
 
-  // Load game state from local storage on component mount
-  useEffect(() => {
-    const storedPlayerName = localStorage.getItem("pixelTerritoryPlayer");
-    if (storedPlayerName) {
-      setPlayerName(storedPlayerName);
-      setIsNewPlayer(false);
-    }
-  }, []);
-
-  // Save game state to local storage whenever it changes
+  // Save game state to local storage
   useEffect(() => {
     localStorage.setItem("pixelTerritoryState", JSON.stringify(gameState));
   }, [gameState]);
 
-  const handleNameSubmit = (event) => {
-    event.preventDefault();
-    if (playerName.trim().length > 0) {
+  // Initialize first player if not exists
+  useEffect(() => {
+    if (Object.keys(gameState.players).length === 0) {
+      handlePlayerChange(currentPlayer);
+    }
+  }, []);
+
+  // Handle player selection/creation
+  const handlePlayerChange = (playerName) => {
+    if (!gameState.players[playerName]) {
+      // Create new player
       const color = generateUniqueColor(
-        Object.values(gameState.players).map((p) => p.color) || []
+        Object.values(gameState.players).map((p) => p.color)
       );
       const updatedState = initializePlayer(gameState, playerName, color);
       setGameState(updatedState);
-      setIsNewPlayer(false);
-      localStorage.setItem("pixelTerritoryPlayer", playerName);
     }
+
+    setCurrentPlayer(playerName);
+    localStorage.setItem("pixelTerritoryPlayer", playerName);
   };
 
+  // Handle cell selection
   const handleCellClick = (x, y) => {
-    if (!playerName) return;
+    // If in powerup targeting mode
+    if (isPowerupTargeting && activePowerup) {
+      const updatedState = applyPowerupEffect(
+        gameState,
+        activePowerup,
+        x,
+        y,
+        currentPlayer
+      );
 
-    const player = gameState.players[playerName];
-    if (!player) return;
+      if (updatedState !== gameState) {
+        setGameState(updatedState);
+        // Consume powerup
+        const updatedPlayer = { ...updatedState.players[currentPlayer] };
+        updatedPlayer.powerups = updatedPlayer.powerups.filter(
+          (p) => p.id !== activePowerup.id
+        );
 
-    // Check if player can claim this cell
-    if (player.tokens < 10) {
-      alert("Not enough tokens! Solve a riddle to earn more.");
-      setShowRiddle(true);
+        const finalState = {
+          ...updatedState,
+          players: {
+            ...updatedState.players,
+            [currentPlayer]: updatedPlayer,
+          },
+        };
+
+        setGameState(finalState);
+      }
+
+      setActivePowerup(null);
+      setIsPowerupTargeting(false);
       return;
     }
 
-    // Attempt to claim the cell
-    const newState = claimCell(gameState, x, y, playerName);
+    const cell = gameState.grid[y][x];
 
-    // If state changed, update it
-    if (newState !== gameState) {
-      setGameState(newState);
-    } else {
-      // If the claim wasn't successful, explain why
-      const cell = gameState.grid[y][x];
+    // If cell is owned by current player, select it
+    if (cell.owner === currentPlayer) {
+      setSelectedCell({ x, y });
+      return;
+    }
 
-      if (cell.owner === playerName) {
-        alert("You already own this cell!");
-      } else if (cell.owner) {
-        // Calculate power values
-        const cellAge = (Date.now() - cell.timestamp) / 60000;
-        const defenderPower = Math.min(10, Math.floor(cellAge) + 1);
+    // If a cell is already selected and this is a valid target
+    if (selectedCell) {
+      const sourceCell = gameState.grid[selectedCell.y][selectedCell.x];
 
-        const playerLastAction = player.lastAction;
-        const playerTimeSince = (Date.now() - playerLastAction) / 60000;
-        const attackerPower = Math.min(10, Math.floor(playerTimeSince) + 1);
-
-        alert(
-          `You need more power to claim this cell! Your power: ${attackerPower}, Cell power: ${defenderPower}`
-        );
+      // Check if this is a valid expansion target
+      if (canExpand(selectedCell.x, selectedCell.y, x, y)) {
+        setTargetCell({ x, y });
+        setShowConfirmation(true);
       } else {
-        alert("You can only expand to adjacent cells!");
+        // Deselect current cell if invalid target
+        setSelectedCell(null);
       }
     }
   };
 
-  const handleRiddleAnswer = (tokens) => {
-    setGameState(addTokens(gameState, playerName, tokens));
+  // Check if expansion from source to target is valid
+  const canExpand = (sourceX, sourceY, targetX, targetY) => {
+    // Check adjacency
+    const isAdjacent =
+      (Math.abs(sourceX - targetX) === 1 && sourceY === targetY) ||
+      (Math.abs(sourceY - targetY) === 1 && sourceX === targetX);
+
+    if (!isAdjacent) return false;
+
+    const player = gameState.players[currentPlayer];
+    if (!player || player.tokens < 10) return false;
+
+    return true;
   };
 
-  if (!playerName) {
-    return (
-      <div className="max-w-md mx-auto my-8 p-4 bg-white shadow rounded">
-        <h2 className="text-2xl font-bold mb-4">Enter Your Name</h2>
-        <form onSubmit={handleNameSubmit}>
-          <input
-            type="text"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            className="w-full p-2 border rounded mb-4"
-            placeholder="Your name"
-          />
-          <button
-            type="submit"
-            className="w-full p-2 bg-blue-500 text-white rounded"
-          >
-            Start Playing
-          </button>
-        </form>
-      </div>
-    );
-  }
+  // Handle cell claim confirmation
+  const handleClaimConfirm = () => {
+    if (!selectedCell || !targetCell) return;
 
-  const player = gameState.players[playerName];
+    const updatedState = claimCell(
+      gameState,
+      targetCell.x,
+      targetCell.y,
+      currentPlayer
+    );
+
+    setGameState(updatedState);
+    setShowConfirmation(false);
+    setSelectedCell(null);
+    setTargetCell(null);
+  };
+
+  // Handle powerup activation
+  const handleActivatePowerup = (powerup) => {
+    setActivePowerup(powerup);
+    setIsPowerupTargeting(true);
+  };
+
+  // Handle earning tokens through riddles
+  const handleEarnTokens = (amount) => {
+    const updatedState = addTokens(gameState, currentPlayer, amount);
+    setGameState(updatedState);
+    setShowRiddle(false);
+  };
+
+  // Get player history data for stats
+  const getPlayerHistory = () => {
+    // Placeholder - in a full implementation this would fetch real history data
+    return Array(10)
+      .fill()
+      .map(() => Math.floor(Math.random() * 100));
+  };
 
   return (
-    <div className="container mx-auto my-4 px-2">
-      <div className="bg-white shadow rounded p-4 mb-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">Pixel Territory</h1>
-            <div className="flex items-center mt-2">
-              <div
-                className="w-4 h-4 rounded-full mr-2"
-                style={{ backgroundColor: player?.color }}
-              ></div>
-              <span className="font-medium">{playerName}</span>
-            </div>
+    <div className="min-h-screen bg-[var(--retro-background)] p-4">
+      <h1 className="text-center text-3xl mb-8 retro-text">PIXEL TERRITORY</h1>
+
+      {/* Game controls */}
+      <div className="max-w-5xl mx-auto mb-6 flex justify-between items-center game-controls">
+        <div className="flex items-center gap-4">
+          <select
+            value={currentPlayer}
+            onChange={(e) => handlePlayerChange(e.target.value)}
+            className="retro-select"
+          >
+            {Object.keys(gameState.players).map((player) => (
+              <option key={player} value={player}>
+                {player}
+              </option>
+            ))}
+            <option value="new">+ New Player</option>
+          </select>
+
+          <div className="text-white">
+            Tokens:
+            <span className="text-[var(--retro-complement)] font-bold ml-2">
+              {gameState.players[currentPlayer]?.tokens || 0}
+            </span>
           </div>
-          <div>
-            <p>
-              <span className="font-bold">Territories:</span>{" "}
-              {player?.cellCount || 0}
-            </p>
-            <p>
-              <span className="font-bold">Tokens:</span> {player?.tokens || 0}
-            </p>
-            <button
-              onClick={() => setShowRiddle(true)}
-              className="mt-2 px-4 py-1 bg-green-500 text-white rounded"
-            >
-              Solve Riddle for Tokens
-            </button>
+        </div>
+
+        <div className="flex gap-2">
+          <RetroButton variant="complement" onClick={() => setShowRiddle(true)}>
+            Earn Tokens
+          </RetroButton>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left column - Player stats */}
+        <div className="lg:col-span-1">
+          <PlayerStats
+            player={gameState.players[currentPlayer]}
+            playerName={currentPlayer}
+            history={getPlayerHistory()}
+          />
+
+          <div className="mt-6">
+            <PowerupInventory
+              powerups={gameState.players[currentPlayer]?.powerups || []}
+              onActivate={handleActivatePowerup}
+            />
+          </div>
+        </div>
+
+        {/* Center/right - Game grid and leaderboard */}
+        <div className="lg:col-span-2">
+          <TerritoryGrid
+            gameState={gameState}
+            playerName={currentPlayer}
+            onCellClick={handleCellClick}
+            selectedCell={selectedCell}
+            isPowerupTargetMode={isPowerupTargeting}
+            powerupType={activePowerup?.type}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <Leaderboard
+              players={gameState.players}
+              currentPlayer={currentPlayer}
+            />
+
+            <AlliancePanel
+              gameState={gameState}
+              playerName={currentPlayer}
+              onAllianceAction={(action) => {
+                // Alliance actions would update game state
+                console.log("Alliance action:", action);
+              }}
+            />
           </div>
         </div>
       </div>
 
-      <TerritoryGrid
-        gameState={gameState}
-        playerName={playerName}
-        onCellClick={handleCellClick}
-      />
+      {/* Modals and Dialogs */}
+      {showConfirmation && selectedCell && targetCell && (
+        <ClaimConfirmationDialog
+          isOpen={showConfirmation}
+          targetCell={gameState.grid[targetCell.y][targetCell.x]}
+          sourceCell={gameState.grid[selectedCell.y][selectedCell.x]}
+          playerName={currentPlayer}
+          cost={10}
+          onConfirm={handleClaimConfirm}
+          onCancel={() => {
+            setShowConfirmation(false);
+            setTargetCell(null);
+          }}
+        />
+      )}
 
-      <RiddleModal
-        isOpen={showRiddle}
-        onClose={() => setShowRiddle(false)}
-        onCorrectAnswer={handleRiddleAnswer}
-      />
+      {showRiddle && (
+        <RiddleModal
+          isOpen={showRiddle}
+          onClose={() => setShowRiddle(false)}
+          onCorrectAnswer={handleEarnTokens}
+        />
+      )}
+
+      {isPowerupTargeting && (
+        <div className="fixed bottom-4 left-0 right-0 bg-black bg-opacity-70 text-white text-center p-4 z-50">
+          <p>Select a target for your {activePowerup?.type} powerup</p>
+          <button
+            onClick={() => {
+              setIsPowerupTargeting(false);
+              setActivePowerup(null);
+            }}
+            className="mt-2 bg-[var(--retro-error)] px-4 py-1 rounded"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 };
+
+export default GameController;

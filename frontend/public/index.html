@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixel Territory</title>
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      /* Basic loading styles */
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background-color: #0f0a1e;
+        color: #f0f0f0;
+        margin: 0;
+      }
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        text-align: center;
+      }
+      .loading-title {
+        color: #ff7edb;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+      }
+      .loading-message {
+        color: #8b6d9c;
+        margin-bottom: 2rem;
+      }
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid rgba(255, 126, 219, 0.2);
+        border-radius: 50%;
+        border-top-color: #ff7edb;
+        animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="loading-container">
+        <h1 class="loading-title">PIXEL TERRITORY</h1>
+        <p class="loading-message">Loading your grid, please wait...</p>
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

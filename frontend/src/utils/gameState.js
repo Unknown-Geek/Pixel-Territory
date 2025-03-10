@@ -6,110 +6,192 @@ import {
   collectPowerup,
 } from "./powerupUtils";
 
-const GRID_SIZE = 20;
-
+/**
+ * Create a new empty game state
+ * @returns {Object} A fresh game state object
+ */
 export const createNewGameState = () => {
-  const gridSize = 20;
+  const grid = createEmptyGrid(20, 20);
+
+  return {
+    grid,
+    players: {},
+    lastReset: Date.now(),
+    gameActive: true,
+    alliances: {},
+    allianceInvites: [],
+    powerups: [],
+  };
+};
+
+/**
+ * Create an empty grid of specified dimensions
+ * @param {number} width Grid width
+ * @param {number} height Grid height
+ * @returns {Array} 2D array of empty cells
+ */
+export const createEmptyGrid = (width, height) => {
   const grid = [];
 
-  // Initialize an empty grid
-  for (let y = 0; y < gridSize; y++) {
+  for (let y = 0; y < height; y++) {
     const row = [];
-    for (let x = 0; x < gridSize; x++) {
+    for (let x = 0; x < width; x++) {
       row.push({
         owner: null,
-        color: "#f0f0f0",
+        color: null,
         timestamp: null,
+        power: 0,
       });
     }
     grid.push(row);
   }
 
-  return {
-    grid,
-    players: {},
-    powerups: [], // Initialize empty powerups array
-    gameActive: true,
-    lastReset: Date.now(),
-    lastPowerupDay: new Date().setHours(0, 0, 0, 0), // Today at midnight
+  return grid;
+};
+
+/**
+ * Initialize a new player in the game state
+ * @param {Object} gameState Current game state
+ * @param {string} playerName Player's unique name
+ * @param {string} color Player's color (generated if not provided)
+ * @returns {Object} Updated game state with new player
+ */
+export const initializePlayer = (gameState, playerName, color = null) => {
+  if (!gameState || !playerName) return gameState;
+
+  // Create a copy of the game state
+  const updatedState = { ...gameState };
+
+  // Don't reinitialize if player exists
+  if (updatedState.players[playerName]) return updatedState;
+
+  // Generate color if not provided
+  const playerColor =
+    color ||
+    generateUniqueColor(
+      Object.values(updatedState.players).map((p) => p.color)
+    );
+
+  // Add player to state
+  updatedState.players[playerName] = {
+    color: playerColor,
+    cellCount: 0,
+    lastAction: Date.now(),
+    tokens: 20, // Start with tokens
+    powerups: [], // No powerups yet
+    captures: 0,
+    losses: 0,
   };
+
+  return updatedState;
 };
 
-export const initializePlayer = (gameState, playerName, color) => {
-  const newState = { ...gameState };
-
-  if (!newState.players[playerName]) {
-    newState.players[playerName] = {
-      color,
-      cellCount: 0,
-      lastAction: Date.now(),
-      tokens: 20, // Start with some tokens
-      powerups: [], // Initialize empty powerups array for player
-    };
-  }
-
-  return newState;
-};
-
-// Check if a cell can be claimed
+/**
+ * Check if a cell can be claimed by a player
+ * @param {Object} gameState Current game state
+ * @param {number} x X coordinate of cell
+ * @param {number} y Y coordinate of cell
+ * @param {string} playerName Player attempting to claim
+ * @returns {boolean} Whether the claim is valid
+ */
 export const canClaimCell = (gameState, x, y, playerName) => {
-  // Existing code for basic claim check
-  const cell = gameState.grid[y][x];
-  const player = gameState.players[playerName];
+  if (!gameState || !gameState.grid || !playerName) return false;
 
-  if (!player) return false;
-
-  // If cell is already owned by player
-  if (cell.owner === playerName) return false;
-
-  // Check if cell has an active shield
-  if (hasActiveShield(cell)) return false;
-
-  // Check if cell is owned by an ally (can't claim allied cells)
-  if (cell.owner && isAlly(gameState, playerName, cell.owner)) {
+  // Validate coordinates
+  if (
+    x < 0 ||
+    y < 0 ||
+    y >= gameState.grid.length ||
+    x >= gameState.grid[0].length
+  ) {
     return false;
   }
 
-  // Player's power calculation
-  const playerTimeSince = Math.floor((Date.now() - player.lastAction) / 60000);
-  const playerPower = Math.min(10, playerTimeSince + 1);
+  const targetCell = gameState.grid[y][x];
+  const player = gameState.players[playerName];
 
-  // Calculate cell defender's power
-  let cellPower = 0;
-  if (cell.owner && cell.timestamp) {
-    const cellAge = Math.floor((Date.now() - cell.timestamp) / 60000);
-    cellPower = Math.min(10, cellAge + 1);
+  // First claim for this player (can pick any unclaimed cell)
+  const playerCells = countPlayerCells(gameState, playerName);
+  if (playerCells === 0 && !targetCell.owner) {
+    return true;
   }
 
-  // New player can claim any unclaimed cell
-  if (!cell.owner && (!player.cells || player.cells === 0)) return true;
-
-  // Existing player needs adjacency unless they have a teleport powerup
-  if (player.cells > 0) {
-    const hasAdjacent = checkAdjacentOwnership(gameState, x, y, playerName);
-    const hasTeleport =
-      player.powerups && player.powerups.some((p) => p.type === "teleport");
-
-    if (!hasAdjacent && !hasTeleport) return false;
+  // Check if player has the required tokens
+  if (!player || player.tokens < 10) {
+    return false;
   }
 
-  // Power check for claiming owned cells
-  if (cell.owner && playerPower <= cellPower) return false;
+  // If cell already belongs to player, no need to claim
+  if (targetCell.owner === playerName) {
+    return false;
+  }
+
+  // Check if cell is adjacent to player's territory
+  if (!isAdjacentToPlayer(gameState, x, y, playerName)) {
+    return false;
+  }
+
+  // Check power levels for claiming enemy territory
+  if (targetCell.owner) {
+    const playerTimeSince = Math.floor(
+      (Date.now() - player.lastAction) / 60000
+    );
+    const attackerPower = Math.min(10, playerTimeSince + 1);
+
+    const cellAge = Math.floor((Date.now() - targetCell.timestamp) / 60000);
+    const defenderPower = Math.min(10, cellAge + 1);
+
+    // Attacker needs more power
+    if (attackerPower <= defenderPower) {
+      return false;
+    }
+
+    // Check if cell is owned by an ally
+    if (isAlly(gameState, playerName, targetCell.owner)) {
+      return false;
+    }
+
+    // Check if cell has an active shield
+    if (targetCell.shielded && targetCell.shieldExpires > Date.now()) {
+      return false;
+    }
+  }
 
   return true;
 };
 
-// Check if two players are allies
-export const isAlly = (gameState, player1, player2) => {
-  if (!gameState.alliances) return false;
+/**
+ * Check if a cell is adjacent to any of a player's territories
+ * @param {Object} gameState Current game state
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @param {string} playerName Player name
+ * @returns {boolean} Whether the cell is adjacent
+ */
+export const isAdjacentToPlayer = (gameState, x, y, playerName) => {
+  if (!gameState || !gameState.grid || !playerName) return false;
 
-  // Check both players' alliance memberships
-  for (const allianceId in gameState.alliances) {
-    const alliance = gameState.alliances[allianceId];
-    const player1IsInAlliance = alliance.members.includes(player1);
-    const player2IsInAlliance = alliance.members.includes(player2);
+  // Check all 4 adjacent cells
+  const adjacentCoords = [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1],
+  ];
 
-    if (player1IsInAlliance && player2IsInAlliance) {
+  for (const [adjX, adjY] of adjacentCoords) {
+    // Bounds checking
+    if (
+      adjX < 0 ||
+      adjY < 0 ||
+      adjY >= gameState.grid.length ||
+      adjX >= gameState.grid[0].length
+    ) {
+      continue;
+    }
+
+    // Check if this adjacent cell belongs to the player
+    if (gameState.grid[adjY][adjX].owner === playerName) {
       return true;
     }
   }
@@ -117,177 +199,166 @@ export const isAlly = (gameState, player1, player2) => {
   return false;
 };
 
-// Check if player owns any adjacent cell
-const checkAdjacentOwnership = (gameState, x, y, playerName) => {
-  const directions = [
-    { dx: 0, dy: -1 }, // up
-    { dx: 1, dy: 0 }, // right
-    { dx: 0, dy: 1 }, // down
-    { dx: -1, dy: 0 }, // left
-  ];
+/**
+ * Count how many cells a player owns
+ * @param {Object} gameState Current game state
+ * @param {string} playerName Player name
+ * @returns {number} Cell count
+ */
+export const countPlayerCells = (gameState, playerName) => {
+  if (!gameState || !gameState.grid || !playerName) return 0;
 
-  for (const dir of directions) {
-    const nx = x + dir.dx;
-    const ny = y + dir.dy;
+  let count = 0;
 
-    // Check bounds
+  for (const row of gameState.grid) {
+    for (const cell of row) {
+      if (cell.owner === playerName) {
+        count++;
+      }
+    }
+  }
+
+  return count;
+};
+
+/**
+ * Claim a cell for a player
+ * @param {Object} gameState Current game state
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @param {string} playerName Player claiming the cell
+ * @returns {Object} Updated game state
+ */
+export const claimCell = (gameState, x, y, playerName) => {
+  if (!canClaimCell(gameState, x, y, playerName)) {
+    return gameState;
+  }
+
+  // Create a deep copy of the game state
+  const updatedState = JSON.parse(JSON.stringify(gameState));
+
+  // Get the previous owner for stat tracking
+  const previousOwner = updatedState.grid[y][x].owner;
+
+  // Calculate player power based on time since last action
+  const player = updatedState.players[playerName];
+  const timeSince = Math.floor((Date.now() - player.lastAction) / 60000);
+  const power = Math.min(10, timeSince + 1);
+
+  // Update the cell with new owner
+  updatedState.grid[y][x] = {
+    owner: playerName,
+    color: player.color,
+    timestamp: Date.now(),
+    power: power,
+  };
+
+  // Deduct tokens if not first claim
+  if (countPlayerCells(gameState, playerName) > 0) {
+    player.tokens -= 10;
+  }
+
+  // Update player stats
+  player.lastAction = Date.now();
+  player.cellCount = countPlayerCells(updatedState, playerName);
+
+  // Update capture stats
+  if (previousOwner) {
+    player.captures = (player.captures || 0) + 1;
+
+    // Update previous owner's losses
+    if (updatedState.players[previousOwner]) {
+      updatedState.players[previousOwner].losses =
+        (updatedState.players[previousOwner].losses || 0) + 1;
+      updatedState.players[previousOwner].cellCount = countPlayerCells(
+        updatedState,
+        previousOwner
+      );
+    }
+  }
+
+  return updatedState;
+};
+
+/**
+ * Check if two players are allies
+ * @param {Object} gameState Current game state
+ * @param {string} player1 First player name
+ * @param {string} player2 Second player name
+ * @returns {boolean} Whether players are allied
+ */
+export const isAlly = (gameState, player1, player2) => {
+  if (!gameState || !gameState.alliances || !player1 || !player2) {
+    return false;
+  }
+
+  // Players are not allies with themselves
+  if (player1 === player2) return false;
+
+  // Check all alliances
+  for (const alliance of Object.values(gameState.alliances)) {
     if (
-      nx >= 0 &&
-      nx < gameState.grid[0].length &&
-      ny >= 0 &&
-      ny < gameState.grid.length
+      alliance.members.includes(player1) &&
+      alliance.members.includes(player2)
     ) {
-      // Check if adjacent cell is owned by player
-      if (gameState.grid[ny][nx].owner === playerName) {
-        return true;
-      }
-
-      // Check if adjacent cell is owned by an ally
-      if (
-        gameState.grid[ny][nx].owner &&
-        isAlly(gameState, playerName, gameState.grid[ny][nx].owner)
-      ) {
-        return true;
-      }
+      return true;
     }
   }
 
   return false;
 };
 
-// Calculate combined alliance score
-export const getAllianceScore = (gameState, allianceId) => {
-  if (!gameState.alliances || !gameState.alliances[allianceId]) return 0;
-
-  const alliance = gameState.alliances[allianceId];
-  let totalScore = 0;
-
-  alliance.members.forEach((memberName) => {
-    const player = gameState.players[memberName];
-    if (player && player.cells) {
-      totalScore += player.cells;
-    }
-  });
-
-  return totalScore;
-};
-
-// Parse alliance commands from comments
-export const parseAllianceCommand = (commentText, playerName) => {
-  // Check for alliance invitations: /ally invite PlayerName
-  const inviteMatch = commentText.match(/\/ally\s+invite\s+([a-zA-Z0-9_]+)/i);
-  if (inviteMatch) {
-    return {
-      type: "invite",
-      from: playerName,
-      to: inviteMatch[1],
-    };
-  }
-
-  // Check for alliance acceptances: /ally accept InviterId
-  const acceptMatch = commentText.match(/\/ally\s+accept\s+([a-zA-Z0-9_]+)/i);
-  if (acceptMatch) {
-    return {
-      type: "accept",
-      from: playerName,
-      to: acceptMatch[1],
-    };
-  }
-
-  // Check for alliance rejections: /ally reject InviterId
-  const rejectMatch = commentText.match(/\/ally\s+reject\s+([a-zA-Z0-9_]+)/i);
-  if (rejectMatch) {
-    return {
-      type: "reject",
-      from: playerName,
-      to: rejectMatch[1],
-    };
-  }
-
-  // Check for alliance leave: /ally leave
-  const leaveMatch = commentText.match(/\/ally\s+leave/i);
-  if (leaveMatch) {
-    return {
-      type: "leave",
-      from: playerName,
-    };
-  }
-
-  return null;
-};
-
-export const hasAdjacentOwnedCell = (gameState, x, y, playerName) => {
-  const directions = [
-    [-1, 0],
-    [1, 0],
-    [0, -1],
-    [0, 1],
-  ];
-
-  return directions.some(([dx, dy]) => {
-    const nx = x + dx;
-    const ny = y + dy;
-
-    // Check boundaries
-    if (
-      nx < 0 ||
-      ny < 0 ||
-      nx >= gameState.grid[0].length ||
-      ny >= gameState.grid.length
-    ) {
-      return false;
-    }
-
-    return gameState.grid[ny][nx].owner === playerName;
-  });
-};
-
-export const claimCell = (gameState, x, y, playerName) => {
-  if (!canClaimCell(gameState, x, y, playerName)) {
+/**
+ * Add tokens to a player
+ * @param {Object} gameState Current game state
+ * @param {string} playerName Player's name
+ * @param {number} amount Amount of tokens to add
+ * @returns {Object} Updated game state
+ */
+export const addTokens = (gameState, playerName, amount) => {
+  if (!gameState || !playerName || !gameState.players[playerName]) {
     return gameState;
   }
 
-  const newState = JSON.parse(JSON.stringify(gameState));
-  const player = newState.players[playerName];
-  const cell = newState.grid[y][x];
+  // Create a deep copy of the game state
+  const updatedState = JSON.parse(JSON.stringify(gameState));
 
-  // Deduct tokens for claiming
-  player.tokens -= 10;
+  // Add tokens
+  updatedState.players[playerName].tokens =
+    (updatedState.players[playerName].tokens || 0) + amount;
 
-  // Update player stats
-  player.lastAction = Date.now();
-
-  // If this cell was already owned by someone else, decrease their count
-  if (cell.owner && cell.owner !== playerName) {
-    newState.players[cell.owner].cellCount--;
-  }
-
-  // If this is a new cell for this player (not one they already owned)
-  if (cell.owner !== playerName) {
-    player.cellCount++;
-  }
-
-  // Update the cell
-  cell.owner = playerName;
-  cell.color = player.color;
-  cell.timestamp = Date.now();
-
-  // Check if there's a powerup on this cell and collect it
-  if (isPowerupAt(newState, x, y)) {
-    return collectPowerup(newState, x, y, playerName);
-  }
-
-  return newState;
+  return updatedState;
 };
 
-export const addTokens = (gameState, playerName, amount) => {
-  if (!gameState.players[playerName]) return gameState;
+/**
+ * Get the total alliance score
+ * @param {Object} gameState Current game state
+ * @param {string} allianceId Alliance ID
+ * @returns {number} Combined cell count
+ */
+export const getAllianceScore = (gameState, allianceId) => {
+  if (!gameState || !gameState.alliances || !gameState.alliances[allianceId]) {
+    return 0;
+  }
 
-  const newState = { ...gameState };
-  newState.players[playerName] = {
-    ...newState.players[playerName],
-    tokens: (newState.players[playerName].tokens || 0) + amount,
-  };
+  const alliance = gameState.alliances[allianceId];
+  let totalCells = 0;
 
-  return newState;
+  for (const member of alliance.members) {
+    if (gameState.players[member]) {
+      totalCells += gameState.players[member].cellCount || 0;
+    }
+  }
+
+  return totalCells;
+};
+
+export default {
+  createNewGameState,
+  initializePlayer,
+  canClaimCell,
+  claimCell,
+  isAlly,
+  addTokens,
+  getAllianceScore,
 };

@@ -1,101 +1,70 @@
 /**
- * Utilities for managing power-ups in the Pixel Territory game
+ * Utilities for power-ups in Pixel Territory
  */
 
 // Define power-up types and their properties
 export const POWERUP_TYPES = {
   SHIELD: {
-    id: "shield",
     name: "Shield",
-    description: "Temporarily protects your territory from being captured",
-    color: "#4B8BFF", // Blue
-    duration: 5 * 60 * 1000, // 5 minutes in milliseconds
+    description: "Protects your territory from capture for 5 minutes",
     icon: "🛡️",
+    color: "#2196F3",
+    targetInstructions: "Select one of your territories to shield",
   },
   BOMB: {
-    id: "bomb",
     name: "Bomb",
-    description: "Claim multiple adjacent cells at once",
-    color: "#FF5555", // Red
-    duration: null, // Single use
+    description: "Claims a target cell and all adjacent cells",
     icon: "💣",
+    color: "#F44336",
+    targetInstructions: "Select any cell to bomb (affects adjacent cells)",
   },
   TELEPORT: {
-    id: "teleport",
     name: "Teleport",
-    description: "Claim a non-adjacent cell anywhere on the grid",
-    color: "#9D5CFF", // Purple
-    duration: null, // Single use
+    description: "Claims any unclaimed cell, regardless of adjacency",
     icon: "✨",
+    color: "#9C27B0",
+    targetInstructions: "Select any unclaimed cell to teleport to",
   },
   COLOR_BOMB: {
-    id: "colorBomb",
     name: "Color Bomb",
-    description: "Convert adjacent enemy territories to your color",
-    color: "#FFCC33", // Yellow/Gold
-    duration: null, // Single use
+    description: "Converts all connected enemy territories of the same color",
     icon: "🎨",
+    color: "#FF9800",
+    targetInstructions: "Select an enemy territory to convert",
   },
 };
 
 /**
- * Generates random power-up cells on the grid
- *
+ * Generate random power-ups for a player
  * @param {Object} gameState Current game state
+ * @param {string} playerName Player's name
  * @param {number} count Number of power-ups to generate
  * @returns {Object} Updated game state with power-ups
  */
-export const generatePowerups = (gameState, count = 3) => {
-  const newState = { ...gameState };
-
-  // Initialize powerups in gameState if it doesn't exist
-  if (!newState.powerups) {
-    newState.powerups = [];
+export const generatePowerups = (gameState, playerName, count = 1) => {
+  if (!gameState || !playerName || !gameState.players[playerName]) {
+    return gameState;
   }
 
-  // Clear existing powerups if it's a new day
-  const lastPowerupDay = newState.lastPowerupDay || 0;
-  const today = new Date().setHours(0, 0, 0, 0);
+  // Create deep copy of game state
+  const newState = JSON.parse(JSON.stringify(gameState));
+  const player = newState.players[playerName];
 
-  if (lastPowerupDay !== today) {
-    newState.powerups = [];
-    newState.lastPowerupDay = today;
-  } else if (newState.powerups.length >= count) {
-    // If we already have enough powerups for today, return the state unchanged
-    return newState;
+  // Initialize power-ups array if it doesn't exist
+  if (!player.powerups) {
+    player.powerups = [];
   }
 
-  // Determine how many more powerups we need to generate
-  const remainingToGenerate = count - newState.powerups.length;
-
-  // Get all valid cell positions (unoccupied cells)
-  const validPositions = [];
-  for (let y = 0; y < newState.grid.length; y++) {
-    for (let x = 0; x < newState.grid[y].length; x++) {
-      // Check if cell is unoccupied and not already containing a powerup
-      if (!newState.grid[y][x].owner && !isPowerupAt(newState, x, y)) {
-        validPositions.push({ x, y });
-      }
-    }
-  }
-
-  // Shuffle valid positions to randomize selection
-  shuffleArray(validPositions);
-
-  // Get powerup types as array for random selection
-  const powerupTypes = Object.values(POWERUP_TYPES);
-
-  // Generate new powerups
-  for (let i = 0; i < remainingToGenerate && i < validPositions.length; i++) {
-    const position = validPositions[i];
-    const powerupType =
+  // Generate random power-ups
+  for (let i = 0; i < count; i++) {
+    const powerupTypes = Object.keys(POWERUP_TYPES);
+    const randomType =
       powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
 
-    newState.powerups.push({
-      x: position.x,
-      y: position.y,
-      type: powerupType.id,
-      createdAt: Date.now(),
+    player.powerups.push({
+      id: `powerup-${Date.now()}-${i}`,
+      type: randomType.toLowerCase(),
+      acquired: Date.now(),
     });
   }
 
@@ -103,15 +72,57 @@ export const generatePowerups = (gameState, count = 3) => {
 };
 
 /**
- * Check if a powerup exists at the given coordinates
- *
+ * Place a powerup on the grid
+ * @param {Object} gameState Current game state
+ * @param {string} type Powerup type
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @returns {Object} Updated game state
+ */
+export const placePowerupOnGrid = (gameState, type, x, y) => {
+  if (!gameState || !type || !gameState.grid) {
+    return gameState;
+  }
+
+  // Validate coordinates
+  if (
+    x < 0 ||
+    y < 0 ||
+    y >= gameState.grid.length ||
+    x >= gameState.grid[0].length
+  ) {
+    return gameState;
+  }
+
+  // Create deep copy of game state
+  const newState = JSON.parse(JSON.stringify(gameState));
+
+  // Initialize powerups array if it doesn't exist
+  if (!newState.powerups) {
+    newState.powerups = [];
+  }
+
+  // Add powerup to game state
+  newState.powerups.push({
+    id: `grid-powerup-${Date.now()}`,
+    type: type.toLowerCase(),
+    x,
+    y,
+    placed: Date.now(),
+  });
+
+  return newState;
+};
+
+/**
+ * Check if a cell has a powerup
  * @param {Object} gameState Current game state
  * @param {number} x X coordinate
  * @param {number} y Y coordinate
- * @returns {boolean} True if a powerup exists at the coordinates
+ * @returns {boolean} Whether cell has a powerup
  */
 export const isPowerupAt = (gameState, x, y) => {
-  if (!gameState.powerups) return false;
+  if (!gameState || !gameState.powerups) return false;
 
   return gameState.powerups.some(
     (powerup) => powerup.x === x && powerup.y === y
@@ -119,15 +130,14 @@ export const isPowerupAt = (gameState, x, y) => {
 };
 
 /**
- * Get a powerup at the given coordinates if one exists
- *
+ * Get powerup at a specific cell
  * @param {Object} gameState Current game state
  * @param {number} x X coordinate
  * @param {number} y Y coordinate
- * @returns {Object|null} The powerup object or null if none exists
+ * @returns {Object|null} Powerup object or null
  */
 export const getPowerupAt = (gameState, x, y) => {
-  if (!gameState.powerups) return null;
+  if (!gameState || !gameState.powerups) return null;
 
   return (
     gameState.powerups.find((powerup) => powerup.x === x && powerup.y === y) ||
@@ -136,8 +146,7 @@ export const getPowerupAt = (gameState, x, y) => {
 };
 
 /**
- * Collect a powerup at the given coordinates
- *
+ * Collect a powerup from the grid
  * @param {Object} gameState Current game state
  * @param {number} x X coordinate
  * @param {number} y Y coordinate
@@ -145,311 +154,452 @@ export const getPowerupAt = (gameState, x, y) => {
  * @returns {Object} Updated game state
  */
 export const collectPowerup = (gameState, x, y, playerName) => {
+  if (!gameState || !gameState.powerups || !playerName) return gameState;
+
   const powerup = getPowerupAt(gameState, x, y);
   if (!powerup) return gameState;
 
-  const newState = { ...gameState };
+  // Create deep copy of game state
+  const newState = JSON.parse(JSON.stringify(gameState));
 
-  // Remove the powerup from the grid
+  // Remove powerup from grid
   newState.powerups = newState.powerups.filter(
     (p) => !(p.x === x && p.y === y)
   );
 
-  // Initialize player powerups if needed
+  // Add to player's inventory
   if (!newState.players[playerName].powerups) {
     newState.players[playerName].powerups = [];
   }
 
-  // Add to player's inventory
   newState.players[playerName].powerups.push({
-    ...powerup,
-    collectedAt: Date.now(),
+    id: `inventory-${Date.now()}`,
+    type: powerup.type,
+    acquired: Date.now(),
   });
 
   return newState;
 };
 
 /**
- * Apply a shield powerup to a cell
- *
+ * Check if a cell has an active shield
+ * @param {Object} cell Cell data
+ * @returns {boolean} Whether the cell has an active shield
+ */
+export const hasActiveShield = (cell) => {
+  if (!cell || !cell.shielded) return false;
+
+  return cell.shieldExpires && cell.shieldExpires > Date.now();
+};
+
+/**
+ * Apply a shield to a cell
  * @param {Object} gameState Current game state
  * @param {number} x X coordinate
  * @param {number} y Y coordinate
- * @param {string} playerName Player activating the powerup
+ * @param {string} playerName Player applying the shield
  * @returns {Object} Updated game state
  */
 export const applyShield = (gameState, x, y, playerName) => {
-  const cell = gameState.grid[y]?.[x];
-  if (!cell || cell.owner !== playerName) return gameState;
+  if (!gameState || !gameState.grid || !playerName) return gameState;
 
-  const newState = JSON.parse(JSON.stringify(gameState));
-  const shieldExpiration = Date.now() + POWERUP_TYPES.SHIELD.duration;
-
-  // Add shield to the cell
-  newState.grid[y][x].shield = {
-    expiresAt: shieldExpiration,
-  };
-
-  // Remove the powerup from player's inventory
-  if (newState.players[playerName].powerups) {
-    const shieldIndex = newState.players[playerName].powerups.findIndex(
-      (p) => p.type === POWERUP_TYPES.SHIELD.id
-    );
-
-    if (shieldIndex !== -1) {
-      newState.players[playerName].powerups.splice(shieldIndex, 1);
-    }
-  }
-
-  return newState;
-};
-
-/**
- * Apply a bomb powerup to claim multiple adjacent cells
- *
- * @param {Object} gameState Current game state
- * @param {number} x X coordinate
- * @param {number} y Y coordinate
- * @param {string} playerName Player activating the powerup
- * @returns {Object} Updated game state
- */
-export const applyBomb = (gameState, x, y, playerName) => {
-  const newState = JSON.parse(JSON.stringify(gameState));
-
-  // Define the blast radius (3x3 grid centered on the target cell)
-  const directions = [
-    { dx: -1, dy: -1 },
-    { dx: 0, dy: -1 },
-    { dx: 1, dy: -1 },
-    { dx: -1, dy: 0 },
-    { dx: 0, dy: 0 },
-    { dx: 1, dy: 0 },
-    { dx: -1, dy: 1 },
-    { dx: 0, dy: 1 },
-    { dx: 1, dy: 1 },
-  ];
-
-  // Claim cells in the blast radius
-  for (const dir of directions) {
-    const nx = x + dir.dx;
-    const ny = y + dir.dy;
-
-    // Check if cell is within bounds
-    if (
-      nx >= 0 &&
-      nx < newState.grid[0].length &&
-      ny >= 0 &&
-      ny < newState.grid.length
-    ) {
-      const cell = newState.grid[ny][nx];
-
-      // Skip cells with shields
-      if (cell.shield && cell.shield.expiresAt > Date.now()) {
-        continue;
-      }
-
-      // Skip allied cells
-      if (
-        cell.owner &&
-        cell.owner !== playerName &&
-        newState.alliances &&
-        isAllyByCheck(newState, playerName, cell.owner)
-      ) {
-        continue;
-      }
-
-      // If this cell was already owned by someone else, decrease their count
-      if (cell.owner && cell.owner !== playerName) {
-        newState.players[cell.owner].cellCount--;
-      }
-
-      // If this is a new cell for the player (not one they already owned)
-      if (cell.owner !== playerName) {
-        newState.players[playerName].cellCount++;
-      }
-
-      // Update the cell
-      cell.owner = playerName;
-      cell.color = newState.players[playerName].color;
-      cell.timestamp = Date.now();
-    }
-  }
-
-  // Remove the powerup from player's inventory
-  if (newState.players[playerName].powerups) {
-    const bombIndex = newState.players[playerName].powerups.findIndex(
-      (p) => p.type === POWERUP_TYPES.BOMB.id
-    );
-
-    if (bombIndex !== -1) {
-      newState.players[playerName].powerups.splice(bombIndex, 1);
-    }
-  }
-
-  return newState;
-};
-
-/**
- * Apply a teleport powerup to claim a non-adjacent cell
- *
- * @param {Object} gameState Current game state
- * @param {number} x X coordinate
- * @param {number} y Y coordinate
- * @param {string} playerName Player activating the powerup
- * @returns {Object} Updated game state
- */
-export const applyTeleport = (gameState, x, y, playerName) => {
-  const cell = gameState.grid[y]?.[x];
-  if (!cell) return gameState;
-
-  // Skip if target cell has a shield
-  if (cell.shield && cell.shield.expiresAt > Date.now()) {
+  // Validate coordinates
+  if (
+    x < 0 ||
+    y < 0 ||
+    y >= gameState.grid.length ||
+    x >= gameState.grid[0].length
+  ) {
     return gameState;
   }
 
+  // Check if the cell belongs to the player
+  const cell = gameState.grid[y][x];
+  if (!cell || cell.owner !== playerName) return gameState;
+
+  // Create deep copy of game state
   const newState = JSON.parse(JSON.stringify(gameState));
 
-  // If this cell was already owned by someone else, decrease their count
-  if (cell.owner && cell.owner !== playerName) {
-    newState.players[cell.owner].cellCount--;
-  }
-
-  // If this is a new cell for the player (not one they already owned)
-  if (cell.owner !== playerName) {
-    newState.players[playerName].cellCount++;
-  }
-
-  // Update the cell
-  newState.grid[y][x].owner = playerName;
-  newState.grid[y][x].color = newState.players[playerName].color;
-  newState.grid[y][x].timestamp = Date.now();
-
-  // Remove the powerup from player's inventory
-  if (newState.players[playerName].powerups) {
-    const teleportIndex = newState.players[playerName].powerups.findIndex(
-      (p) => p.type === POWERUP_TYPES.TELEPORT.id
-    );
-
-    if (teleportIndex !== -1) {
-      newState.players[playerName].powerups.splice(teleportIndex, 1);
-    }
-  }
+  // Apply shield for 5 minutes
+  newState.grid[y][x].shielded = true;
+  newState.grid[y][x].shieldExpires = Date.now() + 5 * 60 * 1000;
 
   return newState;
 };
 
 /**
- * Apply a color bomb to convert adjacent enemy territories
- *
+ * Apply a bomb powerup
  * @param {Object} gameState Current game state
  * @param {number} x X coordinate
  * @param {number} y Y coordinate
- * @param {string} playerName Player activating the powerup
+ * @param {string} playerName Player using the bomb
  * @returns {Object} Updated game state
  */
-export const applyColorBomb = (gameState, x, y, playerName) => {
+export const applyBomb = (gameState, x, y, playerName) => {
+  if (!gameState || !gameState.grid || !playerName) return gameState;
+
+  // Validate coordinates
+  if (
+    x < 0 ||
+    y < 0 ||
+    y >= gameState.grid.length ||
+    x >= gameState.grid[0].length
+  ) {
+    return gameState;
+  }
+
+  // Create deep copy of game state
   const newState = JSON.parse(JSON.stringify(gameState));
 
-  // Define adjacent cells (orthogonal only)
-  const directions = [
-    { dx: 0, dy: -1 }, // Up
-    { dx: 1, dy: 0 }, // Right
-    { dx: 0, dy: 1 }, // Down
-    { dx: -1, dy: 0 }, // Left
-  ];
+  // Get player's power
+  const player = newState.players[playerName];
+  const timeSince = Math.floor((Date.now() - player.lastAction) / 60000);
+  const power = Math.min(10, timeSince + 1);
 
-  // Convert adjacent enemy territories
-  for (const dir of directions) {
-    const nx = x + dir.dx;
-    const ny = y + dir.dy;
+  // Define bomb area (3x3)
+  const bombCells = [];
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const targetX = x + dx;
+      const targetY = y + dy;
 
-    // Check if cell is within bounds
-    if (
-      nx >= 0 &&
-      nx < newState.grid[0].length &&
-      ny >= 0 &&
-      ny < newState.grid.length
-    ) {
-      const cell = newState.grid[ny][nx];
-
-      // Only convert enemy territories (not player's own, unclaimed, or allied)
-      if (cell.owner && cell.owner !== playerName) {
-        // Skip cells with shields
-        if (cell.shield && cell.shield.expiresAt > Date.now()) {
-          continue;
-        }
-
-        // Skip allied cells
-        if (
-          newState.alliances &&
-          isAllyByCheck(newState, playerName, cell.owner)
-        ) {
-          continue;
-        }
-
-        // Decrease previous owner's count
-        newState.players[cell.owner].cellCount--;
-
-        // Increase player's count
-        newState.players[playerName].cellCount++;
-
-        // Update the cell
-        cell.owner = playerName;
-        cell.color = newState.players[playerName].color;
-        cell.timestamp = Date.now();
+      // Check bounds
+      if (
+        targetX >= 0 &&
+        targetX < gameState.grid[0].length &&
+        targetY >= 0 &&
+        targetY < gameState.grid.length
+      ) {
+        bombCells.push({ x: targetX, y: targetY });
       }
     }
   }
 
-  // Remove the powerup from player's inventory
-  if (newState.players[playerName].powerups) {
-    const colorBombIndex = newState.players[playerName].powerups.findIndex(
-      (p) => p.type === POWERUP_TYPES.COLOR_BOMB.id
-    );
+  // Claim all cells in the bomb area
+  bombCells.forEach((cell) => {
+    const targetCell = newState.grid[cell.y][cell.x];
+    const oldOwner = targetCell.owner;
 
-    if (colorBombIndex !== -1) {
-      newState.players[playerName].powerups.splice(colorBombIndex, 1);
+    // Skip if cell has active shield and belongs to another player
+    if (hasActiveShield(targetCell) && targetCell.owner !== playerName) {
+      return;
     }
+
+    // Claim the cell
+    newState.grid[cell.y][cell.x] = {
+      owner: playerName,
+      color: player.color,
+      timestamp: Date.now(),
+      power: power,
+    };
+
+    // Update stats if this was someone else's territory
+    if (oldOwner && oldOwner !== playerName) {
+      // Increment player's captures
+      player.captures = (player.captures || 0) + 1;
+
+      // Increment other player's losses if they exist
+      if (newState.players[oldOwner]) {
+        newState.players[oldOwner].losses =
+          (newState.players[oldOwner].losses || 0) + 1;
+      }
+    }
+  });
+
+  // Update player's action timestamp and cell count
+  player.lastAction = Date.now();
+  player.cellCount = 0; // Will be recalculated
+
+  // Recalculate cell counts for all players
+  Object.keys(newState.players).forEach((playerKey) => {
+    let count = 0;
+    for (const row of newState.grid) {
+      for (const cell of row) {
+        if (cell.owner === playerKey) {
+          count++;
+        }
+      }
+    }
+    newState.players[playerKey].cellCount = count;
+  });
+
+  return newState;
+};
+
+/**
+ * Apply a teleport powerup
+ * @param {Object} gameState Current game state
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @param {string} playerName Player using the teleport
+ * @returns {Object} Updated game state
+ */
+export const applyTeleport = (gameState, x, y, playerName) => {
+  if (!gameState || !gameState.grid || !playerName) return gameState;
+
+  // Validate coordinates
+  if (
+    x < 0 ||
+    y < 0 ||
+    y >= gameState.grid.length ||
+    x >= gameState.grid[0].length
+  ) {
+    return gameState;
+  }
+
+  // Check if the target cell is unclaimed or has no shield
+  const targetCell = gameState.grid[y][x];
+  if (targetCell.owner && hasActiveShield(targetCell)) {
+    return gameState; // Can't teleport to shielded cell
+  }
+
+  // Create deep copy of game state
+  const newState = JSON.parse(JSON.stringify(gameState));
+
+  // Get player's power
+  const player = newState.players[playerName];
+  const timeSince = Math.floor((Date.now() - player.lastAction) / 60000);
+  const power = Math.min(10, timeSince + 1);
+
+  // Store previous owner for stats
+  const oldOwner = targetCell.owner;
+
+  // Claim the cell
+  newState.grid[y][x] = {
+    owner: playerName,
+    color: player.color,
+    timestamp: Date.now(),
+    power: power,
+  };
+
+  // Update stats if this was someone else's territory
+  if (oldOwner && oldOwner !== playerName) {
+    // Increment player's captures
+    player.captures = (player.captures || 0) + 1;
+
+    // Increment other player's losses if they exist
+    if (newState.players[oldOwner]) {
+      newState.players[oldOwner].losses =
+        (newState.players[oldOwner].losses || 0) + 1;
+    }
+  }
+
+  // Update player's action timestamp
+  player.lastAction = Date.now();
+
+  // Update cell counts
+  if (oldOwner && oldOwner !== playerName && newState.players[oldOwner]) {
+    newState.players[oldOwner].cellCount--;
+  }
+
+  if (!oldOwner) {
+    player.cellCount++;
   }
 
   return newState;
 };
 
 /**
- * Check if a cell has an active shield
- *
- * @param {Object} cell The cell to check
- * @returns {boolean} True if the cell has an active shield
+ * Apply a color bomb powerup
+ * @param {Object} gameState Current game state
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @param {string} playerName Player using the color bomb
+ * @returns {Object} Updated game state
  */
-export const hasActiveShield = (cell) => {
-  return cell?.shield && cell.shield.expiresAt > Date.now();
-};
+export const applyColorBomb = (gameState, x, y, playerName) => {
+  if (!gameState || !gameState.grid || !playerName) return gameState;
 
-/**
- * Shuffle an array in-place using the Fisher-Yates algorithm
- *
- * @param {Array} array Array to shuffle
- */
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+  // Validate coordinates
+  if (
+    x < 0 ||
+    y < 0 ||
+    y >= gameState.grid.length ||
+    x >= gameState.grid[0].length
+  ) {
+    return gameState;
   }
-}
 
-// Helper function to check alliance status (needed by power-ups)
-const isAllyByCheck = (gameState, player1, player2) => {
-  if (!gameState.alliances) return false;
+  // Check if the target cell belongs to an enemy
+  const targetCell = gameState.grid[y][x];
+  if (
+    !targetCell.owner ||
+    targetCell.owner === playerName ||
+    hasActiveShield(targetCell)
+  ) {
+    return gameState; // Must target enemy non-shielded cell
+  }
 
-  for (const allianceId in gameState.alliances) {
-    const alliance = gameState.alliances[allianceId];
-    const player1IsInAlliance = alliance.members.includes(player1);
-    const player2IsInAlliance = alliance.members.includes(player2);
+  const targetOwner = targetCell.owner;
 
-    if (player1IsInAlliance && player2IsInAlliance) {
-      return true;
+  // Create deep copy of game state
+  const newState = JSON.parse(JSON.stringify(gameState));
+
+  // Get player's power
+  const player = newState.players[playerName];
+  const timeSince = Math.floor((Date.now() - player.lastAction) / 60000);
+  const power = Math.min(10, timeSince + 1);
+
+  // Flood fill to find all connected territories of the same owner
+  const processed = new Set();
+  const toProcess = [[x, y]];
+  let capturedCount = 0;
+
+  while (toProcess.length > 0) {
+    const [cx, cy] = toProcess.shift();
+    const key = `${cx},${cy}`;
+
+    if (processed.has(key)) continue;
+    processed.add(key);
+
+    // Check if this cell belongs to the target owner
+    if (
+      cx >= 0 &&
+      cx < gameState.grid[0].length &&
+      cy >= 0 &&
+      cy < gameState.grid.length &&
+      gameState.grid[cy][cx].owner === targetOwner
+    ) {
+      // Skip if has active shield
+      if (hasActiveShield(gameState.grid[cy][cx])) continue;
+
+      // Convert the cell
+      newState.grid[cy][cx] = {
+        owner: playerName,
+        color: player.color,
+        timestamp: Date.now(),
+        power: power,
+      };
+
+      capturedCount++;
+
+      // Add adjacent cells to processing queue
+      toProcess.push([cx - 1, cy]);
+      toProcess.push([cx + 1, cy]);
+      toProcess.push([cx, cy - 1]);
+      toProcess.push([cx, cy + 1]);
     }
   }
 
-  return false;
+  // Update stats
+  player.captures = (player.captures || 0) + capturedCount;
+  player.lastAction = Date.now();
+
+  if (newState.players[targetOwner]) {
+    newState.players[targetOwner].losses =
+      (newState.players[targetOwner].losses || 0) + capturedCount;
+  }
+
+  // Recalculate cell counts for affected players
+  player.cellCount += capturedCount;
+  if (newState.players[targetOwner]) {
+    newState.players[targetOwner].cellCount -= capturedCount;
+  }
+
+  return newState;
+};
+
+/**
+ * Apply a powerup effect based on type
+ * @param {Object} gameState Current game state
+ * @param {Object} powerup Powerup object to apply
+ * @param {number} x Target X coordinate
+ * @param {number} y Target Y coordinate
+ * @param {string} playerName Player using the powerup
+ * @returns {Object} Updated game state
+ */
+export const applyPowerupEffect = (gameState, powerup, x, y, playerName) => {
+  if (!powerup || !powerup.type) return gameState;
+
+  switch (powerup.type.toLowerCase()) {
+    case "shield":
+      return applyShield(gameState, x, y, playerName);
+
+    case "bomb":
+      return applyBomb(gameState, x, y, playerName);
+
+    case "teleport":
+      return applyTeleport(gameState, x, y, playerName);
+
+    case "colorbomb":
+    case "color_bomb":
+    case "color-bomb":
+      return applyColorBomb(gameState, x, y, playerName);
+
+    default:
+      console.warn(`Unknown powerup type: ${powerup.type}`);
+      return gameState;
+  }
+};
+
+/**
+ * Generate daily powerups on the grid
+ * @param {Object} gameState Current game state
+ * @param {number} count Number of powerups to generate
+ * @returns {Object} Updated game state with powerups on grid
+ */
+export const generateDailyPowerups = (gameState, count = 3) => {
+  if (!gameState || !gameState.grid) return gameState;
+
+  // Create deep copy of game state
+  const newState = JSON.parse(JSON.stringify(gameState));
+
+  // Clear any existing powerups
+  newState.powerups = [];
+
+  // Get all unclaimed cells
+  const unclaimedCells = [];
+  for (let y = 0; y < newState.grid.length; y++) {
+    for (let x = 0; x < newState.grid[y].length; x++) {
+      if (!newState.grid[y][x].owner) {
+        unclaimedCells.push({ x, y });
+      }
+    }
+  }
+
+  // If no unclaimed cells, return unchanged state
+  if (unclaimedCells.length === 0) return newState;
+
+  // Shuffle unclaimed cells
+  const shuffled = [...unclaimedCells].sort(() => 0.5 - Math.random());
+
+  // Generate powerups
+  const powerupTypes = Object.keys(POWERUP_TYPES).map((key) =>
+    key.toLowerCase()
+  );
+
+  // Limit by available cells or count
+  const actualCount = Math.min(shuffled.length, count);
+
+  for (let i = 0; i < actualCount; i++) {
+    const cell = shuffled[i];
+    const randomType =
+      powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
+
+    newState.powerups.push({
+      id: `daily-powerup-${Date.now()}-${i}`,
+      type: randomType,
+      x: cell.x,
+      y: cell.y,
+      placed: Date.now(),
+    });
+  }
+
+  return newState;
+};
+
+export default {
+  POWERUP_TYPES,
+  generatePowerups,
+  placePowerupOnGrid,
+  isPowerupAt,
+  getPowerupAt,
+  collectPowerup,
+  hasActiveShield,
+  applyShield,
+  applyBomb,
+  applyTeleport,
+  applyColorBomb,
+  applyPowerupEffect,
+  generateDailyPowerups,
 };

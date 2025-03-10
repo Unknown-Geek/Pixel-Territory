@@ -1,0 +1,164 @@
+/* Colorblind accessibility patterns for Pixel Territory */
+
+.dots-pattern::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.5) 1px,
+    transparent 1px
+  );
+  background-size: 6px 6px;
+  pointer-events: none;
+}
+
+.stripes-h-pattern::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.5) 1px,
+    transparent 1px
+  );
+  background-size: 100% 5px;
+  pointer-events: none;
+}
+
+.stripes-v-pattern::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.5) 1px,
+    transparent 1px
+  );
+  background-size: 5px 100%;
+  pointer-events: none;
+}
+
+.diagonal-pattern::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.5) 1px,
+    transparent 1px
+  );
+  background-size: 6px 6px;
+  pointer-events: none;
+}
+
+.crosshatch-pattern::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.5) 1px,
+      transparent 1px
+    ),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.5) 1px, transparent 1px);
+  background-size: 6px 6px;
+  pointer-events: none;
+}
+
+.circle-pattern::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 70%;
+  height: 70%;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.zigzag-pattern::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 8px 8px;
+  pointer-events: none;
+}
+
+.chevron-pattern::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.5) 25%,
+      transparent 25%
+    ),
+    linear-gradient(225deg, rgba(255, 255, 255, 0.5) 25%, transparent 25%);
+  background-size: 8px 8px;
+  background-position: 0 0;
+  pointer-events: none;
+}
+
+/* Responsive adjustments for different screen sizes */
+@media (max-width: 768px) {
+  .dots-pattern::after {
+    background-size: 4px 4px;
+  }
+
+  .stripes-h-pattern::after {
+    background-size: 100% 3px;
+  }
+
+  .stripes-v-pattern::after {
+    background-size: 3px 100%;
+  }
+
+  .diagonal-pattern::after,
+  .crosshatch-pattern::after,
+  .zigzag-pattern::after,
+  .chevron-pattern::after {
+    background-size: 4px 4px;
+  }
+}
+
+/* High contrast mode specific styles */
+@media (forced-colors: active) {
+  /* Add specific patterns that work with high contrast mode */
+  [class*="-pattern"]::after {
+    forced-color-adjust: none;
+    border: 2px dotted CanvasText;
+    background-image: none;
+  }
+}

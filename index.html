@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Territory - Grid Visualization</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Pixel Territory</h1>
+    
+    <div class="controls">
+      <button id="resetBtn">Reset Grid</button>
+      <button id="randomizeBtn">Randomize Territories</button>
+      <div>
+        <label for="playerSelector">Select Player ID:</label>
+        <select id="playerSelector">
+          <option value="1">Player 1</option>
+          <option value="2">Player 2</option>
+          <option value="3">Player 3</option>
+          <option value="4">Player 4</option>
+          <option value="5">Player 5</option>
+          <option value="6">Player 6</option>
+          <option value="7">Player 7</option>
+          <option value="8">Player 8</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- Power-up Container -->
+    <div id="powerup-container" class="powerup-container">
+      <!-- Power-ups will be rendered here by the PowerupSystem -->
+    </div>
+    
+    <div id="grid-container"></div>
+    
+    <!-- Player Dashboard -->
+    <div class="dashboard-container">
+      <!-- Player Stats Panel -->
+      <div class="dashboard-panel">
+        <h3>Territory Statistics</h3>
+        <div id="player-stats" class="panel-content">
+          <!-- Player stats will be rendered here -->
+        </div>
+      </div>
+      
+      <!-- Dashboard Tabs -->
+      <div class="dashboard-panel">
+        <div class="tab-controls">
+          <button class="tab-button active" data-tab="leaderboard">Leaderboard</button>
+          <button class="tab-button" data-tab="alliances">Alliances</button>
+        </div>
+        
+        <div id="leaderboard" class="tab-content active">
+          <div id="leaderboard-content">
+            <!-- Leaderboard will be rendered here -->
+          </div>
+        </div>
+        
+        <div id="alliances" class="tab-content">
+          <div id="alliance-management">
+            <!-- Alliance management will be rendered here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="grid.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="powerups.js"></script>
+  <script>
+    // Initialize the grid visualization and dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+      const gridVis = new GridVisualization('grid-container');
+      const dashboard = new PlayerDashboard();
+      const powerupSystem = new PowerupSystem(gridVis);
+      
+      // Store dashboard in window for grid.js to access
+      window.dashboard = dashboard;
+      
+      // Set initial player
+      gridVis.setPlayer(1);
+      
+      // Create empty grid data
+      const emptyGrid = Array(400).fill().map(() => ({
+        owner: null,
+        color: null,
+        power: 0,
+        timestamp: null
+      }));
+      
+      // Update with empty grid initially
+      gridVis.updateGrid(emptyGrid);
+      
+      // Handle player selection
+      const playerSelector = document.getElementById('playerSelector');
+      playerSelector.addEventListener('change', function() {
+        const playerId = parseInt(this.value);
+        gridVis.setPlayer(playerId);
+        dashboard.setCurrentPlayer(playerId);
+        dashboard.render();
+      });
+      
+      // Handle randomize button
+      document.getElementById('randomizeBtn').addEventListener('click', function() {
+        const randomGrid = Array(400).fill().map(() => {
+          const randomOwner = Math.random() > 0.6 ? Math.floor(Math.random() * 8) + 1 : null;
+          return {
+            owner: randomOwner,
+            color: null,
+            power: randomOwner ? Math.floor(Math.random() * 10) : 0,
+            timestamp: randomOwner ? new Date().toISOString() : null
+          };
+        });
+        
+        gridVis.updateGrid(randomGrid);
+        dashboard.updatePlayerStats(randomGrid);
+      });
+      
+      // Handle reset button
+      document.getElementById('resetBtn').addEventListener('click', function() {
+        gridVis.updateGrid(emptyGrid);
+        dashboard.updatePlayerStats(emptyGrid);
+      });
+      
+      // Add random powerup button
+      const randomPowerupBtn = document.createElement('button');
+      randomPowerupBtn.textContent = 'Get Random Power-up';
+      randomPowerupBtn.className = 'random-powerup-btn';
+      randomPowerupBtn.addEventListener('click', () => {
+        powerupSystem.generateRandomPowerups();
+      });
+      document.querySelector('.controls').appendChild(randomPowerupBtn);
+      
+      // Tab switching functionality
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const tabId = button.dataset.tab;
+          
+          // Deactivate all tabs
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          tabContents.forEach(content => content.classList.remove('active'));
+          
+          // Activate selected tab
+          button.classList.add('active');
+          document.getElementById(tabId).classList.add('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>

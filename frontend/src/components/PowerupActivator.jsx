@@ -2,6 +2,16 @@ import React from "react";
 import { RetroButton } from "./RetroButton";
 import { POWERUP_TYPES } from "../utils/powerupUtils";
 
+/**
+ * Modal for powerup activation and targeting
+ *
+ * @param {Object} props Component properties
+ * @param {boolean} props.isOpen Whether the modal is visible
+ * @param {Object} props.powerupType Type of powerup being activated
+ * @param {Function} props.onClose Handler for closing the modal
+ * @param {Function} props.onActivate Handler for activating the powerup
+ * @param {Function} props.onTargetSelect Handler for target selection
+ */
 export const PowerupActivator = ({
   isOpen,
   powerupType,
@@ -11,90 +21,63 @@ export const PowerupActivator = ({
 }) => {
   if (!isOpen || !powerupType) return null;
 
-  const powerupInfo = POWERUP_TYPES[powerupType.toUpperCase()];
-
-  const handleClick = () => {
-    if (
-      powerupType === "teleport" ||
-      powerupType === "bomb" ||
-      powerupType === "colorBomb"
-    ) {
-      onTargetSelect(powerupType);
-      onClose();
-    } else {
-      onActivate(powerupType);
-      onClose();
-    }
+  const powerupInfo = POWERUP_TYPES[powerupType.toUpperCase()] || {
+    name: powerupType,
+    description: "Unknown powerup",
+    icon: "❓",
+    color: "#999",
+    targetInstructions: "Select a target",
   };
 
   return (
-    <div className="retro-modal-backdrop">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
       <div
-        className="retro-container relative max-w-md w-full"
+        className="retro-container max-w-md w-full animate-rise"
         style={{
-          backgroundColor: `${powerupInfo?.color}22` || "var(--retro-black)",
+          borderColor: powerupInfo.color,
+          boxShadow: `0 0 20px ${powerupInfo.color}`,
         }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="retro-close">
-          &times;
-        </button>
-
-        <div className="flex items-center mb-4">
-          <span className="text-4xl mr-3">{powerupInfo?.icon || "?"}</span>
-          <h2 className="text-xl">{powerupInfo?.name || "Power-up"}</h2>
+        <div className="mb-4 flex items-center">
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center mr-4 text-xl"
+            style={{
+              backgroundColor: powerupInfo.color,
+              boxShadow: `0 0 10px ${powerupInfo.color}`,
+            }}
+          >
+            {powerupInfo.icon}
+          </div>
+          <h3 className="text-xl">{powerupInfo.name}</h3>
         </div>
 
         <p className="mb-6 text-[var(--retro-secondary)]">
-          {powerupInfo?.description ||
-            "This power-up gives you special abilities."}
+          {powerupInfo.description}
         </p>
 
-        {powerupType === "teleport" && (
-          <div className="bg-[var(--retro-black)] p-3 mb-6 rounded border border-[var(--retro-accent)]">
-            <p className="text-[var(--retro-accent)]">
-              Select any cell on the grid to claim it, even if it's not adjacent
-              to your territory.
-            </p>
-          </div>
-        )}
+        <div className="p-3 mb-6 bg-[var(--retro-black)] text-center">
+          <p className="text-[var(--retro-highlight)]">
+            {powerupInfo.targetInstructions || "Select a target on the grid"}
+          </p>
+        </div>
 
-        {powerupType === "bomb" && (
-          <div className="bg-[var(--retro-black)] p-3 mb-6 rounded border border-[var(--retro-accent)]">
-            <p className="text-[var(--retro-accent)]">
-              Select a target cell. The bomb will claim a 3×3 area centered on
-              your target.
-            </p>
-          </div>
-        )}
-
-        {powerupType === "colorBomb" && (
-          <div className="bg-[var(--retro-black)] p-3 mb-6 rounded border border-[var(--retro-accent)]">
-            <p className="text-[var(--retro-accent)]">
-              Select a target cell. The color bomb will convert all adjacent
-              enemy territories to your color.
-            </p>
-          </div>
-        )}
-
-        {powerupType === "shield" && (
-          <div className="bg-[var(--retro-black)] p-3 mb-6 rounded border border-[var(--retro-accent)]">
-            <p className="text-[var(--retro-accent)]">
-              Select one of your territories to protect it for 5 minutes.
-            </p>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-between">
           <RetroButton onClick={onClose}>CANCEL</RetroButton>
-          <RetroButton onClick={handleClick} variant="accent">
-            {powerupType === "teleport" ||
-            powerupType === "bomb" ||
-            powerupType === "colorBomb"
-              ? "SELECT TARGET"
-              : "ACTIVATE"}
+
+          <RetroButton
+            variant="accent"
+            onClick={() => onTargetSelect(powerupType)}
+          >
+            CONTINUE
           </RetroButton>
         </div>
       </div>
     </div>
   );
 };
+
+export default PowerupActivator;

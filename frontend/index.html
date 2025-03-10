@@ -1,13 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pixel Territory</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pixel Territory</title>
+  <meta name="description" content="Claim and defend your pixel territories in this strategic grid-based game">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+  <style>
+    /* Initial loading screen styles */
+    body {
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      background-color: #0f0a1e;
+      color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .loading-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    
+    .game-title {
+      color: #ff7edb;
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      text-shadow: 4px 4px 0px #3a2c4d;
+      letter-spacing: 1px;
+    }
+    
+    .loading-message {
+      color: #8b6d9c;
+      margin-bottom: 2rem;
+    }
+    
+    .pixel-spinner {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-gap: 4px;
+      width: 50px;
+      height: 50px;
+    }
+    
+    .pixel-block {
+      background-color: #ff7edb;
+      animation: pixel-fade 1.5s infinite ease-in-out;
+    }
+    
+    @keyframes pixel-fade {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 1; }
+    }
+    
+    .pixel-block:nth-child(1) { animation-delay: 0s; }
+    .pixel-block:nth-child(2) { animation-delay: 0.1s; }
+    .pixel-block:nth-child(3) { animation-delay: 0.2s; }
+    .pixel-block:nth-child(4) { animation-delay: 0.3s; }
+    .pixel-block:nth-child(5) { animation-delay: 0.4s; }
+    .pixel-block:nth-child(6) { animation-delay: 0.5s; }
+    .pixel-block:nth-child(7) { animation-delay: 0.6s; }
+    .pixel-block:nth-child(8) { animation-delay: 0.7s; }
+    .pixel-block:nth-child(9) { animation-delay: 0.8s; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="loading-screen">
+      <h1 class="game-title">PIXEL TERRITORY</h1>
+      <p class="loading-message">Loading game world...</p>
+      
+      <div class="pixel-spinner">
+        <div class="pixel-block"></div>
+        <div class="pixel-block"></div>
+        <div class="pixel-block"></div>
+        <div class="pixel-block"></div>
+        <div class="pixel-block"></div>
+        <div class="pixel-block"></div>
+        <div class="pixel-block"></div>
+        <div class="pixel-block"></div>
+        <div class="pixel-block"></div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
 </html>

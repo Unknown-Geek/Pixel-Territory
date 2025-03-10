@@ -1,98 +1,59 @@
-import React, { useState } from "react";
-import { parseAllianceCommand } from "../utils/gameState";
-import { RetroButton } from "./RetroButton";
+import React from "react";
 
-export const AllianceCommands = ({ playerName, onProcessCommand }) => {
-  const [commentText, setCommentText] = useState("");
-  const [message, setMessage] = useState({ text: "", type: "" });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!commentText.trim()) {
-      setMessage({ text: "Please enter a command", type: "error" });
-      return;
-    }
-
-    const command = parseAllianceCommand(commentText, playerName);
-
-    if (command) {
-      onProcessCommand(command);
-      setMessage({ text: "Command processed successfully", type: "success" });
-      setCommentText("");
-    } else {
-      setMessage({
-        text: "Invalid command. Use /ally invite, /ally accept, /ally reject or /ally leave",
-        type: "error",
-      });
-    }
-  };
+/**
+ * Alliance command help component
+ * Shows available alliance commands and their usage
+ */
+export const AllianceCommands = () => {
+  const commands = [
+    {
+      command: "/ally invite PlayerName",
+      description: "Send alliance invite to player",
+    },
+    {
+      command: "/ally accept PlayerName",
+      description: "Accept alliance invitation",
+    },
+    {
+      command: "/ally reject PlayerName",
+      description: "Reject alliance invitation",
+    },
+    { command: "/ally leave", description: "Leave your current alliance" },
+    { command: "/ally stats", description: "Show alliance statistics" },
+  ];
 
   return (
-    <div className="retro-container mt-4">
-      <h2 className="retro-header mb-4" data-text="ALLIANCE COMMANDS">
+    <div className="retro-container p-3 my-4">
+      <h3 className="text-sm mb-2 text-[var(--retro-highlight)]">
         ALLIANCE COMMANDS
-      </h2>
+      </h3>
+      <div className="text-xs space-y-2">
+        <p className="text-[var(--retro-secondary)]">
+          Use these commands in the comment section:
+        </p>
+        <table className="w-full border-collapse">
+          <tbody>
+            {commands.map((cmd, idx) => (
+              <tr
+                key={idx}
+                className={
+                  idx % 2 ? "bg-[var(--retro-shadow)] bg-opacity-30" : ""
+                }
+              >
+                <td className="py-1 px-2 text-[var(--retro-primary)]">
+                  {cmd.command}
+                </td>
+                <td className="py-1 px-2 text-[var(--retro-secondary)]">
+                  {cmd.description}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-      {message.text && (
-        <div
-          className={`mb-4 p-2 ${
-            message.type === "error" ? "error-text" : "success-text"
-          }`}
-        >
-          {message.text}
+        <div className="pt-2 text-[var(--retro-secondary)] text-center text-[10px]">
+          Alliance actions can also be performed through the Alliance panel
         </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="comment-command" className="block mb-2 text-sm">
-            Enter a comment with alliance commands:
-          </label>
-          <textarea
-            id="comment-command"
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            className="w-full bg-[var(--retro-black)] border border-[var(--retro-primary)] p-2 h-24 text-[var(--retro-highlight)]"
-            placeholder="/ally invite PlayerName"
-          ></textarea>
-        </div>
-
-        <div>
-          <RetroButton type="submit" variant="accent">
-            Process Command
-          </RetroButton>
-        </div>
-      </form>
-
-      <div className="mt-6">
-        <h3 className="text-[var(--retro-complement)] mb-2">
-          Available Commands:
-        </h3>
-        <ul className="space-y-2">
-          <li>
-            <span className="text-[var(--retro-highlight)]">
-              /ally invite PlayerName
-            </span>{" "}
-            - Invite a player to form an alliance
-          </li>
-          <li>
-            <span className="text-[var(--retro-highlight)]">
-              /ally accept PlayerName
-            </span>{" "}
-            - Accept an alliance invitation
-          </li>
-          <li>
-            <span className="text-[var(--retro-highlight)]">
-              /ally reject PlayerName
-            </span>{" "}
-            - Reject an alliance invitation
-          </li>
-          <li>
-            <span className="text-[var(--retro-highlight)]">/ally leave</span> -
-            Leave your current alliance
-          </li>
-        </ul>
       </div>
     </div>
   );
