@@ -1,11 +1,12 @@
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   createNewGameState,
   canClaimCell,
   claimCell,
   addTokens,
   initializePlayer,
+  getAllianceScore,
 } from "../utils/gameState";
 import { TerritoryGrid } from "./TerritoryGrid";
 import { Leaderboard } from "./Leaderboard";
@@ -18,6 +19,7 @@ import { CellConfirmation } from "./CellConfirmation";
 import { PowerupInventory } from "./PowerupInventory";
 import { PowerupActivator } from "./PowerupActivator";
 import { PowerupDisplay } from "./PowerupDisplay";
+import { PlayerDashboard } from "./PlayerDashboard";
 import {
   generatePowerups,
   applyShield,
@@ -25,6 +27,7 @@ import {
   applyTeleport,
   applyColorBomb,
   POWERUP_TYPES,
+  generateDailyPowerups,
 } from "../utils/powerupUtils";
 
 export const PixelTerritoryGame = () => {
@@ -45,6 +48,7 @@ export const PixelTerritoryGame = () => {
   const [pendingPowerupType, setPendingPowerupType] = useState(null);
   const [isPowerupTargetMode, setIsPowerupTargetMode] = useState(false);
   const [powerupMessage, setPowerupMessage] = useState("");
+  const [showPlayerDashboard, setShowPlayerDashboard] = useState(false);
 
   // Save game state to local storage whenever it changes
   useEffect(() => {
@@ -54,9 +58,13 @@ export const PixelTerritoryGame = () => {
   // Generate daily power-ups
   useEffect(() => {
     // Check if it's a new day to generate power-ups
-    const updatedState = generatePowerups(gameState, 3); // Generate 3 power-ups
-    if (updatedState !== gameState) {
+    const lastPowerupGeneration = localStorage.getItem("lastPowerupGeneration");
+    const today = new Date().toDateString();
+
+    if (lastPowerupGeneration !== today) {
+      const updatedState = generateDailyPowerups(gameState, 3);
       setGameState(updatedState);
+      localStorage.setItem("lastPowerupGeneration", today);
     }
   }, []);
 
@@ -106,7 +114,7 @@ export const PixelTerritoryGame = () => {
     setTimeout(() => setPowerupMessage(""), 3000);
   };
 
-  const handleCellClick = (x, y) => {
+  const handleCellClick = (x, y, event) => {
     if (!currentPlayer || !gameState.gameActive) return;
 
     // If in power-up target selection mode, handle power-up activation
@@ -151,7 +159,10 @@ export const PixelTerritoryGame = () => {
         setPendingCellClaim({
           x,
           y,
-          position: { x: event.pageX, y: event.pageY },
+          position: {
+            x: event?.pageX || window.innerWidth / 2,
+            y: event?.pageY || window.innerHeight / 2,
+          },
         });
         return;
       }
@@ -275,6 +286,86 @@ export const PixelTerritoryGame = () => {
     setGameState(newState);
   };
 
+  const handleAllianceAction = useCallback(
+    (action) => {
+      let updatedState = { ...gameState };
+
+      if (action.type === "invite") {
+        // Create alliance invitation
+        const inviteId = `inv_${Date.now()}`;
+        if (!updatedState.allianceInvites) {
+          updatedState.allianceInvites = [];
+        }
+
+        updatedState.allianceInvites.push({
+          id: inviteId,
+          from: action.from,
+          to: action.to,
+          timestamp: Date.now(),
+          status: "pending",
+        });
+      } else if (action.type === "accept") {
+        // Find the invitation
+        const inviteIndex = updatedState.allianceInvites.findIndex(
+          (invite) => invite.id === action.inviteId
+        );
+
+        if (inviteIndex >= 0) {
+          const invite = updatedState.allianceInvites[inviteIndex];
+
+          // Create the alliance
+          const allianceId = `alliance_${Date.now()}`;
+          if (!updatedState.alliances) {
+            updatedState.alliances = {};
+          }
+
+          updatedState.alliances[allianceId] = {
+            id: allianceId,
+            members: [invite.from, invite.to],
+            formed: Date.now(),
+            leader: invite.from, // Original inviter is the leader
+          };
+
+          // Remove the invitation
+          updatedState.allianceInvites.splice(inviteIndex, 1);
+        }
+      } else if (action.type === "reject") {
+        // Find and remove the invitation
+        const inviteIndex = updatedState.allianceInvites.findIndex(
+          (invite) => invite.id === action.inviteId
+        );
+
+        if (inviteIndex >= 0) {
+          updatedState.allianceInvites.splice(inviteIndex, 1);
+        }
+      } else if (action.type === "leave") {
+        // Find alliances the player is part of
+        Object.keys(updatedState.alliances).forEach((allianceId) => {
+          const alliance = updatedState.alliances[allianceId];
+          if (alliance.members.includes(action.playerId)) {
+            // If only 2 members, remove alliance completely
+            if (alliance.members.length <= 2) {
+              delete updatedState.alliances[allianceId];
+            } else {
+              // Otherwise just remove the player
+              alliance.members = alliance.members.filter(
+                (member) => member !== action.playerId
+              );
+
+              // If the leader left, assign a new leader
+              if (alliance.leader === action.playerId) {
+                alliance.leader = alliance.members[0];
+              }
+            }
+          }
+        });
+      }
+
+      setGameState(updatedState);
+    },
+    [gameState]
+  );
+
   const currentPlayerPowerups =
     gameState.players[currentPlayer]?.powerups || [];
 
@@ -310,12 +401,20 @@ export const PixelTerritoryGame = () => {
               </div>
             ))}
           </div>
-          <button
-            onClick={() => setShowTokenEarner(true)}
-            className="retro-button"
-          >
-            EARN TOKENS
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowPlayerDashboard(true)}
+              className="retro-button"
+            >
+              DASHBOARD
+            </button>
+            <button
+              onClick={() => setShowTokenEarner(true)}
+              className="retro-button"
+            >
+              EARN TOKENS
+            </button>
+          </div>
         </div>
 
         {/* Power-up message */}
@@ -325,24 +424,35 @@ export const PixelTerritoryGame = () => {
           </div>
         )}
 
-        <TerritoryGrid
-          gameState={gameState}
-          playerName={currentPlayer}
-          onCellClick={handleCellClick}
-          isPowerupTargetMode={isPowerupTargetMode}
-          powerupType={pendingPowerupType}
-        />
+        {/* Main game area - now with Leaderboard below TerritoryGrid */}
+        <div className="max-w-3xl mx-auto">
+          <TerritoryGrid
+            gameState={gameState}
+            playerName={currentPlayer}
+            onCellClick={handleCellClick}
+            isPowerupTargetMode={isPowerupTargetMode}
+            powerupType={pendingPowerupType}
+          />
 
-        {/* Power-up inventory */}
-        <PowerupInventory
-          playerPowerups={currentPlayerPowerups}
-          onActivatePowerup={handlePowerupActivate}
-        />
+          {/* Power-up inventory */}
+          <PowerupInventory
+            playerPowerups={currentPlayerPowerups}
+            onActivatePowerup={handlePowerupActivate}
+          />
 
-        <Leaderboard players={gameState.players} />
+          {/* Leaderboard positioned below the grid */}
+          <div className="mt-6">
+            <Leaderboard
+              players={gameState.players}
+              currentPlayer={currentPlayer}
+            />
+          </div>
+        </div>
+
         <GameInfo />
       </div>
 
+      {/* Modals and dialogs */}
       {showTokenEarner && (
         <TokenEarner
           onTokensEarned={handleTokensEarned}
@@ -390,6 +500,30 @@ export const PixelTerritoryGame = () => {
           >
             Cancel
           </button>
+        </div>
+      )}
+
+      {showPlayerDashboard && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-75 p-4">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <PlayerDashboard
+              gameState={gameState}
+              playerName={currentPlayer}
+              onEarnTokens={() => {
+                setShowPlayerDashboard(false);
+                setShowTokenEarner(true);
+              }}
+              onAllianceAction={handleAllianceAction}
+            />
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setShowPlayerDashboard(false)}
+                className="retro-button"
+              >
+                RETURN TO GAME
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

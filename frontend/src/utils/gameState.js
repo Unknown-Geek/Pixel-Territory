@@ -200,6 +200,44 @@ export const isAdjacentToPlayer = (gameState, x, y, playerName) => {
 };
 
 /**
+ * Get all adjacent cells for a given cell
+ * @param {Object} gameState Current game state
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @param {string} playerName Current player name
+ * @returns {Array} Array of valid adjacent cell coordinates
+ */
+export const getAdjacentCells = (gameState, x, y, playerName) => {
+  if (!gameState || !gameState.grid || !playerName) return [];
+
+  const directions = [
+    { dx: -1, dy: 0 }, // Left
+    { dx: 1, dy: 0 }, // Right
+    { dx: 0, dy: -1 }, // Up
+    { dx: 0, dy: 1 }, // Down
+  ];
+
+  const adjacentCells = [];
+
+  for (const { dx, dy } of directions) {
+    const newX = x + dx;
+    const newY = y + dy;
+
+    // Check bounds
+    if (
+      newX >= 0 &&
+      newX < gameState.grid[0].length &&
+      newY >= 0 &&
+      newY < gameState.grid.length
+    ) {
+      adjacentCells.push({ x: newX, y: newY });
+    }
+  }
+
+  return adjacentCells;
+};
+
+/**
  * Count how many cells a player owns
  * @param {Object} gameState Current game state
  * @param {string} playerName Player name

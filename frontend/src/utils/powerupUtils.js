@@ -557,31 +557,27 @@ export const generateDailyPowerups = (gameState, count = 3) => {
     }
   }
 
-  // If no unclaimed cells, return unchanged state
-  if (unclaimedCells.length === 0) return newState;
+  // If no unclaimed cells are available, return original state
+  if (unclaimedCells.length === 0) return gameState;
 
-  // Shuffle unclaimed cells
-  const shuffled = [...unclaimedCells].sort(() => 0.5 - Math.random());
+  // Randomly select cells for powerups
+  const powerupTypes = Object.keys(POWERUP_TYPES);
+  for (let i = 0; i < Math.min(count, unclaimedCells.length); i++) {
+    // Get random unclaimed cell
+    const randomIndex = Math.floor(Math.random() * unclaimedCells.length);
+    const cell = unclaimedCells.splice(randomIndex, 1)[0];
 
-  // Generate powerups
-  const powerupTypes = Object.keys(POWERUP_TYPES).map((key) =>
-    key.toLowerCase()
-  );
+    // Get random powerup type
+    const randomTypeIndex = Math.floor(Math.random() * powerupTypes.length);
+    const powerupType = powerupTypes[randomTypeIndex].toLowerCase();
 
-  // Limit by available cells or count
-  const actualCount = Math.min(shuffled.length, count);
-
-  for (let i = 0; i < actualCount; i++) {
-    const cell = shuffled[i];
-    const randomType =
-      powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
-
+    // Add powerup to grid
     newState.powerups.push({
-      id: `daily-powerup-${Date.now()}-${i}`,
-      type: randomType,
       x: cell.x,
       y: cell.y,
-      placed: Date.now(),
+      type: powerupType,
+      id: `powerup-${Date.now()}-${i}`,
+      expires: Date.now() + 24 * 60 * 60 * 1000, // Expires in 24 hours
     });
   }
 

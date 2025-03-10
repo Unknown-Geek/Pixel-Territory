@@ -2,63 +2,68 @@ import React from "react";
 import { POWERUP_TYPES } from "../utils/powerupUtils";
 
 /**
- * Displays a powerup icon with count
- *
+ * Displays a powerup icon with optional count
  * @param {Object} props Component properties
- * @param {string} props.type Powerup type (e.g. "shield", "bomb")
- * @param {number} props.count Number of powerups
- * @param {string} props.size Size variant ("sm", "md", "lg")
+ * @param {string} props.type Powerup type
+ * @param {number} props.count Number of this powerup
+ * @param {string} props.size Size variant (sm, md, lg)
+ * @param {boolean} props.showTooltip Whether to show tooltip on hover
+ * @param {Function} props.onClick Click handler
  */
-export const PowerupDisplay = ({ type, count = 1, size = "md" }) => {
-  const powerup = POWERUP_TYPES[type?.toUpperCase()] || {
-    name: "Unknown",
-    description: "Mystery powerup",
-    icon: "❓",
-    color: "#999",
-  };
+export const PowerupDisplay = ({
+  type,
+  count = 1,
+  size = "md",
+  showTooltip = true,
+  onClick,
+}) => {
+  // Get powerup information
+  const powerupType = type ? type.toUpperCase() : null;
+  const powerupInfo =
+    powerupType && POWERUP_TYPES[powerupType]
+      ? POWERUP_TYPES[powerupType]
+      : {
+          name: type ? type.charAt(0).toUpperCase() + type.slice(1) : "Unknown",
+          description: "Unknown powerup",
+          icon: "❓",
+          color: "#999999",
+        };
 
-  // Define size classes
-  const sizeClasses = {
-    sm: "w-6 h-6 text-sm",
-    md: "w-10 h-10 text-base",
-    lg: "w-12 h-12 text-lg",
-  };
-
-  const iconSize = {
-    sm: "text-xs",
-    md: "text-base",
-    lg: "text-xl",
-  };
-
-  const countStyle = {
-    sm: "text-[8px] w-3 h-3 -top-1 -right-1",
-    md: "text-[10px] w-4 h-4 -top-1 -right-1",
-    lg: "text-xs w-5 h-5 -top-1 -right-1",
-  };
+  // Determine size class
+  const sizeClass =
+    {
+      sm: "w-6 h-6 text-xs",
+      md: "w-10 h-10 text-base",
+      lg: "w-16 h-16 text-2xl",
+    }[size] || "w-10 h-10 text-base";
 
   return (
-    <div
-      className={`relative flex items-center justify-center ${sizeClasses[size]}`}
-      title={`${powerup.name}: ${powerup.description}`}
-    >
+    <div className="relative group">
       <div
-        className={`flex items-center justify-center rounded-full ${iconSize[size]}`}
+        className={`${sizeClass} rounded-full flex items-center justify-center cursor-pointer
+          transition-transform hover:scale-110 relative`}
         style={{
-          backgroundColor: powerup.color,
-          boxShadow: `0 0 5px ${powerup.color}`,
-          width: "100%",
-          height: "100%",
+          backgroundColor: powerupInfo.color,
+          boxShadow: `0 0 8px ${powerupInfo.color}`,
         }}
+        onClick={onClick}
       >
-        {powerup.icon}
+        <span>{powerupInfo.icon}</span>
+        {count > 1 && (
+          <div className="absolute -top-1 -right-1 bg-black rounded-full w-5 h-5 flex items-center justify-center text-xs">
+            {count}
+          </div>
+        )}
       </div>
 
-      {count > 1 && (
+      {showTooltip && (
         <div
-          className={`absolute ${countStyle[size]} bg-[var(--retro-background)] text-white 
-            rounded-full flex items-center justify-center font-bold z-10`}
+          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-black 
+          text-white p-2 rounded text-xs whitespace-nowrap z-10 opacity-0 group-hover:opacity-100 
+          pointer-events-none transition-opacity"
         >
-          {count}
+          <div className="font-bold mb-1">{powerupInfo.name}</div>
+          <div>{powerupInfo.description}</div>
         </div>
       )}
     </div>

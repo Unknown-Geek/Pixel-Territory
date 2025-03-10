@@ -8,6 +8,8 @@ import { RetroButton } from "./RetroButton";
  * @param {Object} props.targetCell Data about the cell being claimed/attacked
  * @param {Object} props.sourceCell Data about the cell initiating the claim
  * @param {string} props.playerName Current player name
+ * @param {number} props.cost Token cost for claiming
+ * @param {number} props.playerTokens Current player token count
  * @param {Function} props.onConfirm Handler for confirmation
  * @param {Function} props.onCancel Handler for cancellation
  */
@@ -17,14 +19,16 @@ export const ClaimConfirmationDialog = ({
   sourceCell,
   playerName,
   cost = 10,
+  playerTokens = 0,
   onConfirm,
   onCancel,
 }) => {
-  if (!isOpen || !targetCell || !sourceCell) return null;
+  if (!isOpen || !targetCell) return null;
 
   const isAttack = !!targetCell.owner;
-  const attackerPower = sourceCell.power || 1;
+  const attackerPower = sourceCell ? sourceCell.power || 1 : 1;
   const defenderPower = targetCell.power || 0;
+  const notEnoughTokens = playerTokens < cost;
 
   // Calculate success probability
   const successProbability = isAttack
@@ -80,7 +84,7 @@ export const ClaimConfirmationDialog = ({
                 <div className="flex items-center">
                   <span
                     className="w-3 h-3 rounded-full mr-2"
-                    style={{ backgroundColor: sourceCell.color }}
+                    style={{ backgroundColor: sourceCell?.color }}
                   ></span>
                   <span>Your territory</span>
                 </div>
@@ -104,11 +108,22 @@ export const ClaimConfirmationDialog = ({
               <p className="text-center text-2xl text-[var(--retro-complement)]">
                 {cost} <span className="text-sm">TOKENS</span>
               </p>
+
+              {notEnoughTokens && (
+                <div className="mt-2 p-2 bg-[var(--retro-black)] border border-[var(--retro-error)] text-[var(--retro-error)] text-center">
+                  You don't have enough tokens (you have {playerTokens})
+                </div>
+              )}
+
+              <div className="mt-3 text-xs text-[var(--retro-secondary)]">
+                Expand your empire by claiming territories! Each claim costs{" "}
+                {cost} tokens.
+              </div>
             </>
           )}
         </div>
 
-        <div className="flex justify-end space-x-4">
+        <div className="flex justify-between">
           <RetroButton onClick={onCancel}>CANCEL</RetroButton>
 
           <RetroButton
@@ -119,6 +134,7 @@ export const ClaimConfirmationDialog = ({
                   : "accent"
                 : "primary"
             }
+            disabled={notEnoughTokens}
             onClick={onConfirm}
           >
             {isAttack ? "ATTACK" : "CLAIM"}

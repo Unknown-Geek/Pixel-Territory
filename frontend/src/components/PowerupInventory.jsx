@@ -1,20 +1,20 @@
 import React, { useState } from "react";
 import { PowerupDisplay } from "./PowerupDisplay";
-import { RetroButton } from "./RetroButton";
 import { POWERUP_TYPES } from "../utils/powerupUtils";
 
 /**
- * Displays and manages a player's powerup inventory
+ * Display and manage player's powerup inventory
  *
  * @param {Object} props Component properties
- * @param {Array} props.powerups Array of powerup objects
- * @param {Function} props.onActivate Callback when powerup is activated
+ * @param {Array} props.playerPowerups Array of player powerups
+ * @param {Function} props.onActivatePowerup Handler for powerup activation
  */
-export const PowerupInventory = ({ powerups = [], onActivate }) => {
-  const [expandedInfo, setExpandedInfo] = useState(null);
-
+export const PowerupInventory = ({
+  playerPowerups = [],
+  onActivatePowerup,
+}) => {
   // Group powerups by type
-  const groupedPowerups = powerups.reduce((acc, powerup) => {
+  const groupedPowerups = playerPowerups.reduce((acc, powerup) => {
     if (!acc[powerup.type]) {
       acc[powerup.type] = [];
     }
@@ -22,77 +22,36 @@ export const PowerupInventory = ({ powerups = [], onActivate }) => {
     return acc;
   }, {});
 
-  const handlePowerupClick = (powerupType) => {
-    if (expandedInfo === powerupType) {
-      setExpandedInfo(null);
-    } else {
-      setExpandedInfo(powerupType);
-    }
-  };
-
-  const handleActivatePowerup = (powerup) => {
-    onActivate(powerup);
-    setExpandedInfo(null);
-  };
-
   return (
-    <div className="retro-container">
-      <h2 className="retro-header mb-4" data-text="POWER-UPS">
-        POWER-UPS
-      </h2>
+    <div className="max-w-3xl mx-auto mt-4 p-3 bg-[var(--retro-black)] border border-[var(--retro-shadow)] rounded">
+      <h3 className="text-sm mb-3 text-[var(--retro-highlight)]">POWER-UPS</h3>
 
       {Object.keys(groupedPowerups).length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {Object.entries(groupedPowerups).map(([type, items]) => {
-            const powerupInfo = POWERUP_TYPES[type.toUpperCase()] || {
-              name: type,
-              description: "Unknown powerup",
-            };
-
-            return (
-              <div
-                key={type}
-                className={`p-2 border-2 rounded ${
-                  expandedInfo === type
-                    ? "border-[var(--retro-accent)]"
-                    : "border-[var(--retro-shadow)]"
-                }`}
-              >
-                <div
-                  className="flex items-center cursor-pointer"
-                  onClick={() => handlePowerupClick(type)}
-                >
-                  <PowerupDisplay type={type} count={items.length} />
-                  <div className="ml-2 flex-grow">
-                    <div className="font-bold text-sm">{powerupInfo.name}</div>
-                    <div className="text-xs text-[var(--retro-secondary)]">
-                      {items.length} available
-                    </div>
-                  </div>
-                </div>
-
-                {expandedInfo === type && (
-                  <div className="mt-2 pt-2 border-t border-[var(--retro-shadow)]">
-                    <p className="text-xs text-[var(--retro-secondary)] mb-2">
-                      {powerupInfo.description}
-                    </p>
-                    <RetroButton
-                      variant="accent"
-                      fullWidth
-                      onClick={() => handleActivatePowerup(items[0])}
-                    >
-                      ACTIVATE
-                    </RetroButton>
-                  </div>
-                )}
+        <div className="flex items-center justify-center flex-wrap gap-4">
+          {Object.entries(groupedPowerups).map(([type, powerups]) => (
+            <div key={type} className="text-center">
+              <PowerupDisplay
+                type={type}
+                count={powerups.length}
+                size="md"
+                onClick={() => onActivatePowerup(type)}
+              />
+              <div className="text-xs mt-1 text-[var(--retro-secondary)]">
+                {powerups.length > 1 ? `${powerups.length}×` : ""} {type}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       ) : (
-        <p className="text-center text-[var(--retro-secondary)] p-4">
-          No power-ups available. Earn them by capturing territories!
-        </p>
+        <div className="text-center py-4 text-[var(--retro-secondary)] text-sm">
+          No power-ups available. Find them on the grid or earn them!
+        </div>
+      )}
+
+      {Object.keys(groupedPowerups).length > 0 && (
+        <div className="text-xs text-center mt-4 text-[var(--retro-secondary)]">
+          Click a power-up to activate it
+        </div>
       )}
     </div>
   );
