@@ -20,7 +20,7 @@ import { PowerupInventory } from "./PowerupInventory";
 import { PowerupActivator } from "./PowerupActivator";
 import { PowerupDisplay } from "./PowerupDisplay";
 import { PlayerDashboard } from "./PlayerDashboard";
-import AddSubreddits from "./AddSubreddits";
+import AddSubreddits from "./AddSubreddits.tsx";
 import { RetroButton } from "./RetroButton";
 
 import {
@@ -32,6 +32,12 @@ import {
   POWERUP_TYPES,
   generateDailyPowerups,
 } from "../utils/powerupUtils";
+
+interface Powerup {
+  type: string;
+  id?: string;
+  timestamp?: number;
+}
 
 export const PixelTerritoryGame = () => {
   // Initialize with stored game state or create new one
@@ -97,7 +103,9 @@ export const PixelTerritoryGame = () => {
       handleAddPlayer(
         currentPlayer,
         generateUniqueColor(
-          Object.values(gameState.players).map((p) => p.color as string)
+          Object.values(gameState.players).map(
+            (p: { color: string }) => p.color
+          ) as string[] // Explicitly cast to string array
         )
       );
     }
@@ -417,8 +425,7 @@ export const PixelTerritoryGame = () => {
 
   // Fix: Define proper type for powerups and make onClick optional
   const currentPlayerPowerups =
-    (gameState.players[currentPlayer]?.powerups as Array<{ type: string }>) ||
-    [];
+    (gameState.players[currentPlayer]?.powerups as Powerup[]) || [];
 
   return (
     <div className="min-h-screen bg-black p-4">
@@ -498,7 +505,7 @@ export const PixelTerritoryGame = () => {
 
           {/* Power-up inventory */}
           <PowerupInventory
-            playerPowerups={currentPlayerPowerups as Array<{ type: string }>}
+            playerPowerups={currentPlayerPowerups}
             onActivatePowerup={handlePowerupActivate}
           />
 

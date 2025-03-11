@@ -1,6 +1,17 @@
-import React, { useState } from "react";
+import React from "react";
 import { PowerupDisplay } from "./PowerupDisplay";
-import { POWERUP_TYPES } from "../utils/powerupUtils";
+
+// Import or redefine the Powerup interface to match Game.tsx
+interface Powerup {
+  type: string;
+  id?: string;
+  timestamp?: number;
+}
+
+interface PowerupInventoryProps {
+  playerPowerups: Powerup[];
+  onActivatePowerup: (powerupType: string) => void;
+}
 
 /**
  * Display and manage player's powerup inventory
@@ -9,26 +20,26 @@ import { POWERUP_TYPES } from "../utils/powerupUtils";
  * @param {Array} props.playerPowerups Array of player powerups
  * @param {Function} props.onActivatePowerup Handler for powerup activation
  */
-export const PowerupInventory = ({
-  playerPowerups = [],
+export const PowerupInventory: React.FC<PowerupInventoryProps> = ({
+  playerPowerups,
   onActivatePowerup,
 }) => {
-  // Group powerups by type
-  const groupedPowerups = playerPowerups.reduce((acc, powerup) => {
+  // Group powerups by type for display
+  const powerupsByType = playerPowerups.reduce((acc, powerup) => {
     if (!acc[powerup.type]) {
       acc[powerup.type] = [];
     }
     acc[powerup.type].push(powerup);
     return acc;
-  }, {});
+  }, {} as Record<string, Powerup[]>);
 
   return (
     <div className="max-w-3xl mx-auto mt-4 p-3 bg-[var(--retro-black)] border border-[var(--retro-shadow)] rounded">
       <h3 className="text-sm mb-3 text-[var(--retro-highlight)]">POWER-UPS</h3>
 
-      {Object.keys(groupedPowerups).length > 0 ? (
+      {Object.keys(powerupsByType).length > 0 ? (
         <div className="flex items-center justify-center flex-wrap gap-4">
-          {Object.entries(groupedPowerups).map(([type, powerups]) => (
+          {Object.entries(powerupsByType).map(([type, powerups]) => (
             <div key={type} className="text-center">
               <PowerupDisplay
                 type={type}
@@ -48,7 +59,7 @@ export const PowerupInventory = ({
         </div>
       )}
 
-      {Object.keys(groupedPowerups).length > 0 && (
+      {Object.keys(powerupsByType).length > 0 && (
         <div className="text-xs text-center mt-4 text-[var(--retro-secondary)]">
           Click a power-up to activate it
         </div>
