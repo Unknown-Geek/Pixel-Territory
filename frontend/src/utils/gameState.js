@@ -260,62 +260,59 @@ export const countPlayerCells = (gameState, playerName) => {
 };
 
 /**
- * Claim a cell for a player
+ * Claims a cell for a player
  * @param {Object} gameState Current game state
- * @param {number} x X coordinate
- * @param {number} y Y coordinate
- * @param {string} playerName Player claiming the cell
+ * @param {number} x X coordinate of the cell
+ * @param {number} y Y coordinate of the cell
+ * @param {string} playerName Player name
+ * @param {number} tokenCost Token cost for claiming (default: 10)
  * @returns {Object} Updated game state
  */
-export const claimCell = (gameState, x, y, playerName) => {
-  if (!canClaimCell(gameState, x, y, playerName)) {
-    return gameState;
+export const claimCell = (gameState, x, y, playerName, tokenCost = 10) => {
+  // Deep clone the game state to avoid mutation
+  const newState = JSON.parse(JSON.stringify(gameState));
+
+  // Ensure player exists
+  if (!newState.players[playerName]) {
+    return newState;
   }
 
-  // Create a deep copy of the game state
-  const updatedState = JSON.parse(JSON.stringify(gameState));
+  // Ensure player has enough tokens
+  if (newState.players[playerName].tokens < tokenCost) {
+    return newState; // Return unchanged state if not enough tokens
+  }
 
-  // Get the previous owner for stat tracking
-  const previousOwner = updatedState.grid[y][x].owner;
+  // Deduct tokens from player
+  newState.players[playerName].tokens -= tokenCost;
 
-  // Calculate player power based on time since last action
-  const player = updatedState.players[playerName];
-  const timeSince = Math.floor((Date.now() - player.lastAction) / 60000);
-  const power = Math.min(10, timeSince + 1);
-
-  // Update the cell with new owner
-  updatedState.grid[y][x] = {
+  // Update the cell
+  newState.grid[y][x] = {
     owner: playerName,
-    color: player.color,
+    color: newState.players[playerName].color,
     timestamp: Date.now(),
-    power: power,
   };
 
-  // Deduct tokens if not first claim
-  if (countPlayerCells(gameState, playerName) > 0) {
-    player.tokens -= 10;
-  }
+  // Update player's stats
+  newState.players[playerName].cellCount =
+    (newState.players[playerName].cellCount || 0) + 1;
+  newState.players[playerName].lastAction = Date.now();
 
-  // Update player stats
-  player.lastAction = Date.now();
-  player.cellCount = countPlayerCells(updatedState, playerName);
+  // If this was a capture from another player, increment captures count
+  if (gameState.grid[y][x].owner && gameState.grid[y][x].owner !== playerName) {
+    newState.players[playerName].captures =
+      (newState.players[playerName].captures || 0) + 1;
 
-  // Update capture stats
-  if (previousOwner) {
-    player.captures = (player.captures || 0) + 1;
-
-    // Update previous owner's losses
-    if (updatedState.players[previousOwner]) {
-      updatedState.players[previousOwner].losses =
-        (updatedState.players[previousOwner].losses || 0) + 1;
-      updatedState.players[previousOwner].cellCount = countPlayerCells(
-        updatedState,
-        previousOwner
+    // Update previous owner's stats
+    const previousOwner = gameState.grid[y][x].owner;
+    if (newState.players[previousOwner]) {
+      newState.players[previousOwner].cellCount = Math.max(
+        0,
+        (newState.players[previousOwner].cellCount || 0) - 1
       );
     }
   }
 
-  return updatedState;
+  return newState;
 };
 
 /**

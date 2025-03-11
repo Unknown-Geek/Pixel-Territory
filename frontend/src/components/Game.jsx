@@ -126,10 +126,11 @@ export const PixelTerritoryGame = () => {
     const player = gameState.players[currentPlayer];
     if (!player) return;
 
-    // Check if player has enough tokens
-    if (player.tokens < 10) {
+    // Check if player has enough tokens - each claim costs 10 tokens
+    const claimCost = 10;
+    if (player.tokens < claimCost) {
       alert(
-        "You need 10 tokens to claim a territory. Earn more by answering questions!"
+        `You need ${claimCost} tokens to claim a territory. Earn more by answering questions!`
       );
       setShowTokenEarner(true);
       return;
@@ -167,8 +168,8 @@ export const PixelTerritoryGame = () => {
         return;
       }
 
-      // For unclaimed cells or own cells, claim directly
-      const newState = claimCell(gameState, x, y, currentPlayer);
+      // For unclaimed cells, claim directly after verifying token cost
+      const newState = claimCell(gameState, x, y, currentPlayer, claimCost);
       setGameState(newState);
     } else {
       // If the claim wasn't successful, explain why
@@ -256,8 +257,18 @@ export const PixelTerritoryGame = () => {
   const handleConfirmClaim = () => {
     if (!pendingCellClaim) return;
 
+    // Check token cost again in case state changed
+    const player = gameState.players[currentPlayer];
+    const claimCost = 10;
+
+    if (!player || player.tokens < claimCost) {
+      alert(`You need ${claimCost} tokens to claim a territory!`);
+      setPendingCellClaim(null);
+      return;
+    }
+
     const { x, y } = pendingCellClaim;
-    const newState = claimCell(gameState, x, y, currentPlayer);
+    const newState = claimCell(gameState, x, y, currentPlayer, claimCost);
     setGameState(newState);
     setPendingCellClaim(null);
   };
@@ -428,7 +439,7 @@ export const PixelTerritoryGame = () => {
         <div className="max-w-3xl mx-auto">
           <TerritoryGrid
             gameState={gameState}
-            playerName={currentPlayer}
+            currentPlayer={currentPlayer}
             onCellClick={handleCellClick}
             isPowerupTargetMode={isPowerupTargetMode}
             powerupType={pendingPowerupType}
