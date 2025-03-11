@@ -20,6 +20,9 @@ import { PowerupInventory } from "./PowerupInventory";
 import { PowerupActivator } from "./PowerupActivator";
 import { PowerupDisplay } from "./PowerupDisplay";
 import { PlayerDashboard } from "./PlayerDashboard";
+import AddSubreddits from "./AddSubreddit";
+import { RetroButton } from "./RetroButton";
+
 import {
   generatePowerups,
   applyShield,
@@ -49,6 +52,7 @@ export const PixelTerritoryGame = () => {
   const [isPowerupTargetMode, setIsPowerupTargetMode] = useState(false);
   const [powerupMessage, setPowerupMessage] = useState("");
   const [showPlayerDashboard, setShowPlayerDashboard] = useState(false);
+  const [showAddSubreddits, setShowAddSubreddits] = useState(false);
 
   // Save game state to local storage whenever it changes
   useEffect(() => {
@@ -79,6 +83,7 @@ export const PixelTerritoryGame = () => {
         lastAction: Date.now(),
         tokens: 20, // Start with some tokens
         powerups: [], // Initialize empty powerups array
+        subreddits: [], // Initialize empty subreddits array
       };
       setGameState(newState);
       localStorage.setItem("pixelTerritoryPlayer", currentPlayer);
@@ -88,8 +93,8 @@ export const PixelTerritoryGame = () => {
       handleAddPlayer(
         currentPlayer,
         generateUniqueColor(
-          Object.values(gameState.players).map((p) => p.color)
-        )
+          Object.values(gameState.players).map((p) => p.color),
+        ),
       );
     }
   }, []);
@@ -103,6 +108,20 @@ export const PixelTerritoryGame = () => {
     const cooldownHours = 5; // Cooldown period in hours
     riddleManager.setLimits(maxRiddles, cooldownHours);
   }, []);
+
+  const handleSubredditsSubmit = (subredditList) => {
+    const updatedState = { ...gameState };
+    if (updatedState.players[currentPlayer]) {
+      // Initialize subreddits array if it doesn't exist
+      if (!updatedState.players[currentPlayer].subreddits) {
+        updatedState.players[currentPlayer].subreddits = [];
+      }
+      // Update with the new list
+      updatedState.players[currentPlayer].subreddits = subredditList;
+      setGameState(updatedState);
+    }
+    setShowAddSubreddits(false);
+  };
 
   const showPowerupResult = (message, type = "success") => {
     setPowerupMessage(message);
@@ -135,7 +154,7 @@ export const PixelTerritoryGame = () => {
     const claimCost = 10;
     if (player.tokens < claimCost) {
       alert(
-        `You need ${claimCost} tokens to claim a territory. Earn more by answering questions!`
+        `You need ${claimCost} tokens to claim a territory. Earn more by answering questions!`,
       );
       setShowTokenEarner(true);
       return;
@@ -150,13 +169,13 @@ export const PixelTerritoryGame = () => {
         const defenderPower = Math.min(10, cellAge + 1);
 
         const playerTimeSince = Math.floor(
-          (Date.now() - player.lastAction) / 60000
+          (Date.now() - player.lastAction) / 60000,
         );
         const attackerPower = Math.min(10, playerTimeSince + 1);
 
         if (attackerPower <= defenderPower) {
           alert(
-            `You need more power to claim this cell! Your power: ${attackerPower}, Cell power: ${defenderPower}`
+            `You need more power to claim this cell! Your power: ${attackerPower}, Cell power: ${defenderPower}`,
           );
           return;
         }
@@ -188,12 +207,12 @@ export const PixelTerritoryGame = () => {
         const defenderPower = Math.min(10, cellAge + 1);
 
         const playerTimeSince = Math.floor(
-          (Date.now() - player.lastAction) / 60000
+          (Date.now() - player.lastAction) / 60000,
         );
         const attackerPower = Math.min(10, playerTimeSince + 1);
 
         alert(
-          `You need more power to claim this cell! Your power: ${attackerPower}, Cell power: ${defenderPower}`
+          `You need more power to claim this cell! Your power: ${attackerPower}, Cell power: ${defenderPower}`,
         );
       } else {
         alert("You can only expand to adjacent cells!");
@@ -287,6 +306,12 @@ export const PixelTerritoryGame = () => {
 
     const newState = { ...gameState };
     const updatedState = initializePlayer(newState, playerName, color);
+
+    // Make sure the subreddits field is initialized
+    if (!updatedState.players[playerName].subreddits) {
+      updatedState.players[playerName].subreddits = [];
+    }
+
     setGameState(updatedState);
     setCurrentPlayer(playerName);
     localStorage.setItem("pixelTerritoryPlayer", playerName);
@@ -323,7 +348,7 @@ export const PixelTerritoryGame = () => {
       } else if (action.type === "accept") {
         // Find the invitation
         const inviteIndex = updatedState.allianceInvites.findIndex(
-          (invite) => invite.id === action.inviteId
+          (invite) => invite.id === action.inviteId,
         );
 
         if (inviteIndex >= 0) {
@@ -348,7 +373,7 @@ export const PixelTerritoryGame = () => {
       } else if (action.type === "reject") {
         // Find and remove the invitation
         const inviteIndex = updatedState.allianceInvites.findIndex(
-          (invite) => invite.id === action.inviteId
+          (invite) => invite.id === action.inviteId,
         );
 
         if (inviteIndex >= 0) {
@@ -365,7 +390,7 @@ export const PixelTerritoryGame = () => {
             } else {
               // Otherwise just remove the player
               alliance.members = alliance.members.filter(
-                (member) => member !== action.playerId
+                (member) => member !== action.playerId,
               );
 
               // If the leader left, assign a new leader
@@ -379,7 +404,7 @@ export const PixelTerritoryGame = () => {
 
       setGameState(updatedState);
     },
-    [gameState]
+    [gameState],
   );
 
   const currentPlayerPowerups =
@@ -406,7 +431,7 @@ export const PixelTerritoryGame = () => {
               currentPlayerPowerups.reduce((acc, p) => {
                 acc[p.type] = (acc[p.type] || 0) + 1;
                 return acc;
-              }, {})
+              }, {}),
             ).map(([type, count]) => (
               <div
                 key={type}
@@ -429,6 +454,12 @@ export const PixelTerritoryGame = () => {
               className="retro-button"
             >
               EARN TOKENS
+            </button>
+            <button
+              onClick={() => setShowAddSubreddits(true)}
+              className="retro-button"
+            >
+              Add Subreddit
             </button>
           </div>
         </div>
@@ -493,6 +524,21 @@ export const PixelTerritoryGame = () => {
           onTargetSelect={handlePowerupConfirm}
           onActivate={handlePowerupConfirm}
         />
+      )}
+
+      {/* Add Subreddits Modal */}
+      {showAddSubreddits && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-75 p-4">
+          <div className="w-full max-w-md">
+            <AddSubreddits
+              currentSubreddits={
+                gameState.players[currentPlayer]?.subreddits || []
+              }
+              onSubmit={handleSubredditsSubmit}
+              onCancel={() => setShowAddSubreddits(false)}
+            />
+          </div>
+        </div>
       )}
 
       {isPowerupTargetMode && (
