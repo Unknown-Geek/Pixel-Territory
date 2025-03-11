@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { canClaimCell, isAlly, getAdjacentCells } from "../utils/gameState";
 import {
   isPowerupAt,
@@ -17,6 +17,33 @@ export const TerritoryGrid = ({
   const [hoverPosition, setHoverPosition] = useState(null);
   const [selectedCell, setSelectedCell] = useState(null);
   const [adjacentCells, setAdjacentCells] = useState([]);
+  const [cellSize, setCellSize] = useState(36); // Default size
+  const gridContainerRef = useRef(null);
+  const gridRef = useRef(null);
+
+  // Calculate optimal cell size based on container width
+  useEffect(() => {
+    const calculateCellSize = () => {
+      if (!gridContainerRef.current) return;
+
+      const containerWidth = gridContainerRef.current.clientWidth;
+      // Account for container padding, borders, and scrollbar
+      const availableWidth = containerWidth - 50; // Increased padding to account for border and padding
+
+      // Calculate cell size that will fit exactly 20 cells with 1px gaps
+      const optimalCellSize = Math.floor((availableWidth - 19) / 20); // 19px for gaps (1px × 19 gaps)
+
+      // Ensure minimum and maximum size
+      const newSize = Math.max(24, Math.min(optimalCellSize, 40));
+      setCellSize(newSize);
+    };
+
+    calculateCellSize();
+
+    // Recalculate on window resize
+    window.addEventListener("resize", calculateCellSize);
+    return () => window.removeEventListener("resize", calculateCellSize);
+  }, []);
 
   // When a cell is selected, calculate adjacent cells for expansion visualization
   useEffect(() => {
@@ -182,8 +209,13 @@ export const TerritoryGrid = ({
     return (
       <div
         key={`${x}-${y}`}
-        className={`w-10 h-10 ${borderClass} ${allianceIndicator} ${powerupPreview} ${expansionClass} flex items-center justify-center relative cursor-pointer grid-cell`}
-        style={{ backgroundColor: cell.color }}
+        className={`grid-cell ${borderClass} ${allianceIndicator} ${powerupPreview} ${expansionClass} flex items-center justify-center relative cursor-pointer`}
+        style={{
+          backgroundColor: cell.color,
+          width: `${cellSize}px`,
+          height: `${cellSize}px`,
+          boxSizing: "border-box", // Ensure border is included in width/height
+        }}
         onClick={(event) => handleCellClick(x, y, event)}
         onMouseEnter={() => handleCellHover(x, y)}
         onMouseLeave={handleCellLeave}
@@ -290,10 +322,25 @@ export const TerritoryGrid = ({
   };
 
   return (
-    <div className="grid grid-cols-20 gap-0 mx-auto my-4 max-w-fit retro-container">
-      {gameState.grid.map((row, y) =>
-        row.map((cell, x) => renderCell(cell, x, y))
-      )}
+    <div
+      ref={gridContainerRef}
+      className="mx-auto my-4 retro-container p-5 relative"
+    >
+      <div className="overflow-visible">
+        <div
+          ref={gridRef}
+          className="grid gap-[1px] mx-auto"
+          style={{
+            gridTemplateColumns: `repeat(20, ${cellSize}px)`,
+            width: `${cellSize * 20 + 19}px`, // Account for 1px gap between cells
+            maxWidth: "100%", // Ensure it doesn't exceed container width
+          }}
+        >
+          {gameState.grid.map((row, y) =>
+            row.map((cell, x) => renderCell(cell, x, y))
+          )}
+        </div>
+      </div>
       <style jsx>{`
         .shadow-glow {
           box-shadow: 0 0 10px var(--retro-primary);
@@ -333,6 +380,29 @@ export const TerritoryGrid = ({
           50% {
             box-shadow: 0 0 15px var(--retro-error);
           }
+        }
+      `}</style>
+
+      {/* Add global styles for tooltips */}
+      <style jsx global>{`
+        .grid-cell:hover .cell-tooltip {
+          visibility: visible;
+          opacity: 1;
+        }
+
+        .cell-tooltip {
+          position: absolute;
+          z-index: 1000;
+          background-color: rgba(0, 0, 0, 0.9);
+          color: white;
+          padding: 8px;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          pointer-events: none;
+          white-space: nowrap;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+          border: 1px solid var(--retro-primary);
+          max-width: 250px;
         }
       `}</style>
     </div>
