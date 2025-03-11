@@ -6,6 +6,9 @@ import "./styles/patterns.css";
 import "./styles/responsive.css";
 
 const rootElement = document.getElementById("root");
+if (!rootElement) {
+  throw new Error("Root element not found");
+}
 
 // Add error boundary around root render to catch initialization errors
 try {

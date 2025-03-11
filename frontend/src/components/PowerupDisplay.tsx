@@ -15,7 +15,7 @@ export const PowerupDisplay = ({
   count = 1,
   size = "md",
   showTooltip = true,
-  onClick,
+  onClick = () => {}, // Make onClick optional with default empty function
 }) => {
   // Get powerup information
   const powerupType = type ? type.toUpperCase() : null;

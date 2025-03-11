@@ -1,7 +1,19 @@
 import React, { useState } from "react";
 import { RetroButton } from "./RetroButton";
 
-const AddSubreddits = ({ onSubmit, onCancel }) => {
+interface AddSubredditsProps {
+  currentSubreddits?: string[];
+  onSubmit: (subreddits: string[]) => void;
+  onCancel: () => void;
+  onClose?: () => void; // Add the missing onClose prop
+}
+
+const AddSubreddits: React.FC<AddSubredditsProps> = ({
+  currentSubreddits = [],
+  onSubmit,
+  onCancel,
+  onClose = onCancel, // Default to onCancel if onClose not provided
+}) => {
   const [subreddits, setSubreddits] = useState("");
 
   const handleSubmit = (e) => {
@@ -14,7 +26,7 @@ const AddSubreddits = ({ onSubmit, onCancel }) => {
     if (subredditList.length > 0) {
       onSubmit(subredditList);
       setSubreddits(""); // Clear input after submission
-      onClose(); // Close modal
+      onClose(); // Use onClose here
     }
   };
 

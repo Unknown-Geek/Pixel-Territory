@@ -2,6 +2,24 @@
  * Utilities for alliance management in Pixel Territory
  */
 
+// Define interfaces for alliance-related objects
+interface Alliance {
+  id: string;
+  name: string;
+  members: string[];
+  leader: string;
+  formed: number;
+  combinedPower?: number;
+}
+
+interface AllianceInvite {
+  id: string;
+  from: string;
+  to: string;
+  status: string;
+  timestamp: number;
+}
+
 /**
  * Create a new alliance between two players
  * @param {Object} gameState Current game state
@@ -22,10 +40,13 @@ export const createAlliance = (gameState, player1, player2) => {
   // Create deep copy of game state
   const newState = JSON.parse(JSON.stringify(gameState));
 
-  // Check if alliance already exists
-  const existingAlliance = Object.values(newState.alliances || {}).find(
+  // Assert alliances to ensure proper type
+  const existingAlliance = Object.values(
+    newState.alliances || ({} as Record<string, Alliance>)
+  ).find(
     (alliance) =>
-      alliance.members.includes(player1) && alliance.members.includes(player2)
+      (alliance as Alliance).members.includes(player1) &&
+      (alliance as Alliance).members.includes(player2)
   );
 
   if (existingAlliance) {
@@ -144,13 +165,15 @@ export const respondToInvitation = (gameState, inviteId, accepted) => {
   // Find invitation
   if (!newState.allianceInvites) return newState;
 
-  const inviteIndex = newState.allianceInvites.findIndex(
+  const allianceInvites = newState.allianceInvites as AllianceInvite[];
+
+  const inviteIndex = allianceInvites.findIndex(
     (invite) => invite.id === inviteId
   );
 
   if (inviteIndex === -1) return newState;
 
-  const invite = newState.allianceInvites[inviteIndex];
+  const invite = allianceInvites[inviteIndex];
 
   // Update invitation status
   newState.allianceInvites[inviteIndex].status = accepted
@@ -159,8 +182,11 @@ export const respondToInvitation = (gameState, inviteId, accepted) => {
 
   // If accepted, create alliance
   if (accepted) {
-    // Fix: don't reassign to newState, use a temporary variable
-    const updatedState = createAlliance(newState, invite.from, invite.to);
+    const updatedState = createAlliance(
+      newState as any,
+      invite.from,
+      invite.to
+    );
     return updatedState;
   }
 
@@ -178,10 +204,10 @@ export const getPlayerAlliances = (gameState, playerName) => {
     return [];
   }
 
-  return Object.values(gameState.alliances)
+  return Object.values(gameState.alliances as Record<string, Alliance>)
     .filter((alliance) => alliance.members.includes(playerName))
     .map((alliance) => ({
-      ...alliance,
+      ...(alliance as Alliance),
       allyName: alliance.members.find((member) => member !== playerName),
     }));
 };

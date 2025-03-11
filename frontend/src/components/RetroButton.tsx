@@ -1,5 +1,13 @@
 import React from "react";
 
+// Add explicit prop types
+interface RetroButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "accent" | "complement" | "danger";
+  fullWidth?: boolean;
+  // 'type' will be inferred as "button" | "reset" | "submit" from ButtonHTMLAttributes
+}
+
 /**
  * A styled button component with retro aesthetics
  *
@@ -12,7 +20,7 @@ import React from "react";
  * @param {Function} [props.onClick] - Click handler
  * @param {string} [props.type='button'] - Button type
  */
-export const RetroButton = ({
+export const RetroButton: React.FC<RetroButtonProps> = ({
   variant = "primary",
   children,
   fullWidth = false,

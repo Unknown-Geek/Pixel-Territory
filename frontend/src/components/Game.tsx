@@ -20,7 +20,7 @@ import { PowerupInventory } from "./PowerupInventory";
 import { PowerupActivator } from "./PowerupActivator";
 import { PowerupDisplay } from "./PowerupDisplay";
 import { PlayerDashboard } from "./PlayerDashboard";
-import { AddSubreddit } from "./AddSubreddit";
+import AddSubreddits from "./AddSubreddits";
 import { RetroButton } from "./RetroButton";
 
 import {
@@ -46,7 +46,11 @@ export const PixelTerritoryGame = () => {
   });
 
   const [showTokenEarner, setShowTokenEarner] = useState(false);
-  const [pendingCellClaim, setPendingCellClaim] = useState(null);
+  const [pendingCellClaim, setPendingCellClaim] = useState<{
+    x: number;
+    y: number;
+    position: { x: number; y: number };
+  } | null>(null);
   const [activePowerup, setActivePowerup] = useState(null);
   const [pendingPowerupType, setPendingPowerupType] = useState(null);
   const [isPowerupTargetMode, setIsPowerupTargetMode] = useState(false);
@@ -93,8 +97,8 @@ export const PixelTerritoryGame = () => {
       handleAddPlayer(
         currentPlayer,
         generateUniqueColor(
-          Object.values(gameState.players).map((p) => p.color),
-        ),
+          Object.values(gameState.players).map((p) => p.color as string)
+        )
       );
     }
   }, []);
@@ -154,7 +158,7 @@ export const PixelTerritoryGame = () => {
     const claimCost = 10;
     if (player.tokens < claimCost) {
       alert(
-        `You need ${claimCost} tokens to claim a territory. Earn more by answering questions!`,
+        `You need ${claimCost} tokens to claim a territory. Earn more by answering questions!`
       );
       setShowTokenEarner(true);
       return;
@@ -165,17 +169,19 @@ export const PixelTerritoryGame = () => {
       // If it's an opponent's cell, show confirmation
       const cell = gameState.grid[y][x];
       if (cell.owner && cell.owner !== currentPlayer) {
-        const cellAge = Math.floor((Date.now() - cell.timestamp) / 60000);
+        const cellAge = Math.floor(
+          (Date.now() - Number(cell.timestamp)) / 60000
+        );
         const defenderPower = Math.min(10, cellAge + 1);
 
         const playerTimeSince = Math.floor(
-          (Date.now() - player.lastAction) / 60000,
+          (Date.now() - Number(player.lastAction)) / 60000
         );
         const attackerPower = Math.min(10, playerTimeSince + 1);
 
         if (attackerPower <= defenderPower) {
           alert(
-            `You need more power to claim this cell! Your power: ${attackerPower}, Cell power: ${defenderPower}`,
+            `You need more power to claim this cell! Your power: ${attackerPower}, Cell power: ${defenderPower}`
           );
           return;
         }
@@ -203,16 +209,18 @@ export const PixelTerritoryGame = () => {
         alert("You already own this cell!");
       } else if (cell.owner) {
         // Calculate power values
-        const cellAge = Math.floor((Date.now() - cell.timestamp) / 60000);
+        const cellAge = Math.floor(
+          (Date.now() - Number(cell.timestamp)) / 60000
+        );
         const defenderPower = Math.min(10, cellAge + 1);
 
         const playerTimeSince = Math.floor(
-          (Date.now() - player.lastAction) / 60000,
+          (Date.now() - Number(player.lastAction)) / 60000
         );
         const attackerPower = Math.min(10, playerTimeSince + 1);
 
         alert(
-          `You need more power to claim this cell! Your power: ${attackerPower}, Cell power: ${defenderPower}`,
+          `You need more power to claim this cell! Your power: ${attackerPower}, Cell power: ${defenderPower}`
         );
       } else {
         alert("You can only expand to adjacent cells!");
@@ -348,7 +356,7 @@ export const PixelTerritoryGame = () => {
       } else if (action.type === "accept") {
         // Find the invitation
         const inviteIndex = updatedState.allianceInvites.findIndex(
-          (invite) => invite.id === action.inviteId,
+          (invite) => invite.id === action.inviteId
         );
 
         if (inviteIndex >= 0) {
@@ -373,7 +381,7 @@ export const PixelTerritoryGame = () => {
       } else if (action.type === "reject") {
         // Find and remove the invitation
         const inviteIndex = updatedState.allianceInvites.findIndex(
-          (invite) => invite.id === action.inviteId,
+          (invite) => invite.id === action.inviteId
         );
 
         if (inviteIndex >= 0) {
@@ -390,7 +398,7 @@ export const PixelTerritoryGame = () => {
             } else {
               // Otherwise just remove the player
               alliance.members = alliance.members.filter(
-                (member) => member !== action.playerId,
+                (member) => member !== action.playerId
               );
 
               // If the leader left, assign a new leader
@@ -404,11 +412,13 @@ export const PixelTerritoryGame = () => {
 
       setGameState(updatedState);
     },
-    [gameState],
+    [gameState]
   );
 
+  // Fix: Define proper type for powerups and make onClick optional
   const currentPlayerPowerups =
-    gameState.players[currentPlayer]?.powerups || [];
+    (gameState.players[currentPlayer]?.powerups as Array<{ type: string }>) ||
+    [];
 
   return (
     <div className="min-h-screen bg-black p-4">
@@ -431,14 +441,19 @@ export const PixelTerritoryGame = () => {
               currentPlayerPowerups.reduce((acc, p) => {
                 acc[p.type] = (acc[p.type] || 0) + 1;
                 return acc;
-              }, {}),
+              }, {} as Record<string, number>)
             ).map(([type, count]) => (
               <div
                 key={type}
                 className="ml-3"
                 title={POWERUP_TYPES[type.toUpperCase()]?.name || "Power-up"}
               >
-                <PowerupDisplay type={type} count={count} size="sm" />
+                <PowerupDisplay
+                  type={type}
+                  count={count}
+                  size="sm"
+                  onClick={() => {}} // Add empty click handler
+                />
               </div>
             ))}
           </div>
@@ -475,7 +490,7 @@ export const PixelTerritoryGame = () => {
         <div className="max-w-3xl mx-auto">
           <TerritoryGrid
             gameState={gameState}
-            currentPlayer={currentPlayer}
+            playerName={currentPlayer} // fixed prop name
             onCellClick={handleCellClick}
             isPowerupTargetMode={isPowerupTargetMode}
             powerupType={pendingPowerupType}
@@ -483,7 +498,7 @@ export const PixelTerritoryGame = () => {
 
           {/* Power-up inventory */}
           <PowerupInventory
-            playerPowerups={currentPlayerPowerups}
+            playerPowerups={currentPlayerPowerups as Array<{ type: string }>}
             onActivatePowerup={handlePowerupActivate}
           />
 

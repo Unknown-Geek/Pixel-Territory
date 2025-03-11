@@ -7,6 +7,9 @@ import {
   hasActiveShield,
 } from "../utils/powerupUtils";
 
+// Define cell position type
+type CellPosition = { x: number; y: number };
+
 export const TerritoryGrid = ({
   gameState,
   playerName,
@@ -14,12 +17,13 @@ export const TerritoryGrid = ({
   isPowerupTargetMode,
   powerupType,
 }) => {
-  const [hoverPosition, setHoverPosition] = useState(null);
-  const [selectedCell, setSelectedCell] = useState(null);
-  const [adjacentCells, setAdjacentCells] = useState([]);
-  const [cellSize, setCellSize] = useState(36); // Default size
-  const gridContainerRef = useRef(null);
-  const gridRef = useRef(null);
+  // Added explicit types for state and refs
+  const [hoverPosition, setHoverPosition] = useState<CellPosition | null>(null);
+  const [selectedCell, setSelectedCell] = useState<CellPosition | null>(null);
+  const [adjacentCells, setAdjacentCells] = useState<CellPosition[]>([]);
+  const [cellSize, setCellSize] = useState<number>(36); // Default size
+  const gridContainerRef = useRef<HTMLDivElement | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
 
   // Calculate optimal cell size based on container width
   useEffect(() => {
@@ -60,7 +64,7 @@ export const TerritoryGrid = ({
     }
   }, [selectedCell, gameState, playerName]);
 
-  const handleCellHover = (x, y) => {
+  const handleCellHover = (x: number, y: number) => {
     setHoverPosition({ x, y });
   };
 
@@ -68,7 +72,7 @@ export const TerritoryGrid = ({
     setHoverPosition(null);
   };
 
-  const handleCellClick = (x, y, event) => {
+  const handleCellClick = (x: number, y: number, event: React.MouseEvent) => {
     // If already selected, deselect it
     if (selectedCell && selectedCell.x === x && selectedCell.y === y) {
       setSelectedCell(null);
@@ -341,6 +345,7 @@ export const TerritoryGrid = ({
           )}
         </div>
       </div>
+      {/* @ts-ignore */}
       <style jsx>{`
         .shadow-glow {
           box-shadow: 0 0 10px var(--retro-primary);
@@ -382,8 +387,7 @@ export const TerritoryGrid = ({
           }
         }
       `}</style>
-
-      {/* Add global styles for tooltips */}
+      {/* @ts-ignore */}
       <style jsx global>{`
         .grid-cell:hover .cell-tooltip {
           visibility: visible;
