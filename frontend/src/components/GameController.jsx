@@ -48,6 +48,14 @@ export const GameController = () => {
     }
   }, []);
 
+  // Initialize riddle limits
+  useEffect(() => {
+    // Configure riddle limits - these can be adjusted as needed
+    const maxRiddles = 5; // Maximum riddles per cooldown period
+    const cooldownHours = 5; // Cooldown period in hours
+    riddleManager.setLimits(maxRiddles, cooldownHours);
+  }, []);
+
   // Handle player selection/creation
   const handlePlayerChange = (playerName) => {
     if (!gameState.players[playerName]) {

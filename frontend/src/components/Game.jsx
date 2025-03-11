@@ -94,9 +94,14 @@ export const PixelTerritoryGame = () => {
     }
   }, []);
 
-  // Initialize riddle pool on game start
+  // Initialize riddle pool and set limits on game start
   useEffect(() => {
     riddleManager.generateRiddleBatch();
+
+    // Configure riddle limits - these can be adjusted as needed
+    const maxRiddles = 5; // Maximum riddles per cooldown period
+    const cooldownHours = 5; // Cooldown period in hours
+    riddleManager.setLimits(maxRiddles, cooldownHours);
   }, []);
 
   const showPowerupResult = (message, type = "success") => {

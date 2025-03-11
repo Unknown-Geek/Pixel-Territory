@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { RetroButton } from "./RetroButton";
 import { POWERUP_TYPES } from "../utils/powerupUtils";
 
@@ -11,6 +11,7 @@ import { POWERUP_TYPES } from "../utils/powerupUtils";
  * @param {Function} props.onClose Handler for closing the modal
  * @param {Function} props.onActivate Handler for activating the powerup
  * @param {Function} props.onTargetSelect Handler for target selection
+ * @param {boolean} props.resetActive Whether a game reset is happening
  */
 export const PowerupActivator = ({
   isOpen,
@@ -18,7 +19,15 @@ export const PowerupActivator = ({
   onClose,
   onActivate,
   onTargetSelect,
+  resetActive = false,
 }) => {
+  useEffect(() => {
+    // When reset is active, make sure powerups are available
+    if (resetActive && onActivate) {
+      onActivate();
+    }
+  }, [resetActive, onActivate]);
+
   if (!isOpen || !powerupType) return null;
 
   const powerupInfo = POWERUP_TYPES[powerupType.toUpperCase()] || {
