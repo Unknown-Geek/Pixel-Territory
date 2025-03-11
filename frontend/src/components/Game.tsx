@@ -20,7 +20,7 @@ import { PowerupInventory } from "./PowerupInventory";
 import { PowerupActivator } from "./PowerupActivator";
 import { PowerupDisplay } from "./PowerupDisplay";
 import { PlayerDashboard } from "./PlayerDashboard";
-import AddSubreddits from "./AddSubreddit";
+import { AddSubreddit } from "./AddSubreddit";
 import { RetroButton } from "./RetroButton";
 
 import {
