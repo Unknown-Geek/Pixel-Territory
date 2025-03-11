@@ -71,7 +71,12 @@ export const getRandomRiddle = () => {
   // Mark this riddle as used
   usedRiddleIndices.push(randomIndex);
 
-  return riddles[randomIndex];
+  return {
+    id: `riddle-${Date.now()}`,
+    question: riddles[randomIndex].question,
+    answer: riddles[randomIndex].answer,
+    difficulty: getDifficulty(riddles[randomIndex].answer),
+  };
 };
 
 /**
@@ -85,46 +90,6 @@ export const checkRiddleAnswer = (riddleQuestion, userAnswer) => {
   if (!riddle) return false;
 
   return riddle.answer.toLowerCase() === userAnswer.toLowerCase();
-};
-
-/**
- * Reset used riddles tracking
- */
-export const resetRiddleTracking = () => {
-  usedRiddleIndices = [];
-};
-
-/**
- * Service for providing riddles to earn tokens
- */
-import { getRandomQuestion } from "./questions";
-
-// Pre-generated set of riddles for improved performance
-const RIDDLE_CACHE = [];
-
-/**
- * Get a random riddle
- * @returns {Object} A riddle object with question and answer
- */
-export const getRandomRiddle = () => {
-  if (RIDDLE_CACHE.length === 0) {
-    // Generate 10 riddles for the cache
-    for (let i = 0; i < 10; i++) {
-      const question = getRandomQuestion();
-      RIDDLE_CACHE.push({
-        id: `riddle-${Date.now()}-${i}`,
-        question: question.question,
-        answer: question.answer,
-        difficulty: getDifficulty(question.answer),
-      });
-    }
-  }
-
-  // Return a random riddle from the cache
-  return RIDDLE_CACHE.splice(
-    Math.floor(Math.random() * RIDDLE_CACHE.length),
-    1
-  )[0];
 };
 
 /**
@@ -182,8 +147,17 @@ const getDifficulty = (answer) => {
   return "hard";
 };
 
+/**
+ * Reset used riddles tracking
+ */
+export const resetRiddleTracking = () => {
+  usedRiddleIndices = [];
+};
+
 export default {
   getRandomRiddle,
   getRiddlesForPlayer,
   checkAnswer,
+  checkRiddleAnswer,
+  resetRiddleTracking,
 };

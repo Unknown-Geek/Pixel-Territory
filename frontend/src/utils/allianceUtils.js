@@ -159,7 +159,9 @@ export const respondToInvitation = (gameState, inviteId, accepted) => {
 
   // If accepted, create alliance
   if (accepted) {
-    newState = createAlliance(newState, invite.from, invite.to);
+    // Fix: don't reassign to newState, use a temporary variable
+    const updatedState = createAlliance(newState, invite.from, invite.to);
+    return updatedState;
   }
 
   return newState;

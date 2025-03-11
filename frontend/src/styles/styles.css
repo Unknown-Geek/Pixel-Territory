@@ -534,3 +534,46 @@ input:focus {
   transform: scale(1.15);
   z-index: 10;
 }
+
+/* Improve contrast for data in tables */
+.retro-container table td {
+  color: var(--retro-highlight);
+}
+
+/* Remove the hover color change effect */
+/* .retro-container table tr:hover td {
+  color: var(--retro-black);
+} */
+
+/* Remove the power level hover effect */
+/* .retro-container table tr:hover .power-level {
+  color: var(--retro-black);
+} */
+
+/* Current player highlighting improvements */
+.current-player-row {
+  position: relative;
+  box-shadow: 0 0 6px var(--retro-primary);
+}
+
+.current-player-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--retro-primary);
+}
+
+/* Badge styling for better contrast */
+.player-badge {
+  display: inline-block;
+  padding: 1px 4px;
+  background-color: var(--retro-black);
+  border: 1px solid var(--retro-complement);
+  color: var(--retro-complement);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}

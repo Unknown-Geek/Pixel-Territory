@@ -5,7 +5,6 @@ import { Leaderboard } from "./Leaderboard";
 import { AlliancePanel } from "./AlliancePanel";
 import { PowerupInventory } from "./PowerupInventory";
 import { ClaimConfirmationDialog } from "./ClaimConfirmationDialog";
-import { RiddleModal } from "./RiddleModal";
 import { RetroButton } from "./RetroButton";
 import { PowerupActivator } from "./PowerupActivator";
 import {

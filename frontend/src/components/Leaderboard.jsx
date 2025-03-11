@@ -112,12 +112,12 @@ export const Leaderboard = ({ players, currentPlayer }) => {
                 className={`
                   ${
                     player.name === currentPlayer
-                      ? "bg-[var(--retro-primary)] bg-opacity-20"
+                      ? "bg-[var(--retro-primary)] bg-opacity-25 border-l-4 border-l-[var(--retro-primary)]" // Added border for better indication
                       : index % 2 === 0
                       ? "bg-[var(--retro-black)]"
                       : "bg-[var(--retro-shadow)] bg-opacity-30"
                   }
-                  border-b border-[var(--retro-shadow)] hover:bg-opacity-30 hover:bg-[var(--retro-accent)] transition-colors
+                  border-b border-[var(--retro-shadow)]
                 `}
               >
                 <td className="p-2">#{index + 1}</td>
@@ -133,17 +133,23 @@ export const Leaderboard = ({ players, currentPlayer }) => {
                     }}
                   ></span>
                   <span
-                    className={player.name === currentPlayer ? "font-bold" : ""}
+                    className={
+                      player.name === currentPlayer
+                        ? "font-bold text-[var(--retro-highlight)]"
+                        : ""
+                    } // Changed text color for current player
                   >
                     {player.name}
                     {player.name === currentPlayer && (
-                      <span className="text-xs text-[var(--retro-highlight)] ml-2">
+                      <span className="text-xs text-[var(--retro-complement)] ml-2 bg-[var(--retro-black)] px-1 py-0.5 rounded">
                         (YOU)
-                      </span>
+                      </span> // Added background to "YOU" label
                     )}
                   </span>
                 </td>
-                <td className="text-right p-2">{player.cellCount || 0}</td>
+                <td className="text-right p-2 text-[var(--retro-highlight)]">
+                  {player.cellCount || 0}
+                </td>
                 <td className="text-right p-2">
                   <div className="flex items-center justify-end">
                     <div className="bg-[var(--retro-shadow)] h-2 w-12 mr-1 rounded-sm overflow-hidden">
@@ -152,10 +158,14 @@ export const Leaderboard = ({ players, currentPlayer }) => {
                         style={{ width: `${(player.power / 10) * 100}%` }}
                       ></div>
                     </div>
-                    {player.power}
+                    <span className="text-[var(--retro-highlight)] power-level">
+                      {player.power}
+                    </span>
                   </div>
                 </td>
-                <td className="text-right p-2">{player.captures || 0}</td>
+                <td className="text-right p-2 text-[var(--retro-highlight)]">
+                  {player.captures || 0}
+                </td>
               </tr>
             ))}
           </tbody>
