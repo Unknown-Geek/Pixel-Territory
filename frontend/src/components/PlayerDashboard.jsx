@@ -58,7 +58,7 @@ export const PlayerDashboard = ({
           // Store in localStorage for persistence
           localStorage.setItem(
             `playerStats_${playerName}`,
-            JSON.stringify(newHistory)
+            JSON.stringify(newHistory),
           );
 
           return newHistory;
@@ -126,7 +126,7 @@ export const PlayerDashboard = ({
       const alliance = gameState.alliances[key];
       if (alliance.members.includes(playerName)) {
         const allyNames = alliance.members.filter(
-          (name) => name !== playerName
+          (name) => name !== playerName,
         );
         return {
           id: key,
@@ -145,7 +145,7 @@ export const PlayerDashboard = ({
   const getPendingInvites = () => {
     if (!gameState.allianceInvites) return [];
     return gameState.allianceInvites.filter(
-      (invite) => invite.to === playerName && invite.status === "pending"
+      (invite) => invite.to === playerName && invite.status === "pending",
     );
   };
 
@@ -355,7 +355,7 @@ export const PlayerDashboard = ({
                     {achievement}
                   </div>
                 </div>
-              )
+              ),
             )}
           </div>
         </div>
@@ -437,8 +437,8 @@ export const PlayerDashboard = ({
                   You are not currently in an alliance
                 </p>
                 <p className="text-sm text-[var(--retro-highlight)]">
-                  Form alliances to protect territories and combine forces with
-                  other players!
+                  Form alliances with other subreddits to protect territories
+                  and combine forces with them !
                 </p>
               </div>
 
@@ -508,13 +508,13 @@ export const PlayerDashboard = ({
               <div className="mt-4 p-4 bg-[var(--retro-black)] border border-[var(--retro-secondary)]">
                 <div className="mb-4">
                   <label className="block mb-1 text-sm" htmlFor="ally-select">
-                    Select Player:
+                    Select Subreddit:
                   </label>
                   <select
                     id="ally-select"
                     className="w-full bg-[var(--retro-shadow)] text-[var(--retro-highlight)] p-2 rounded"
                   >
-                    <option value="">Choose a player</option>
+                    <option value="">Choose a subreddit</option>
                     {Object.keys(gameState.players)
                       .filter((name) => name !== playerName)
                       .map((name) => (
@@ -559,7 +559,7 @@ export const PlayerDashboard = ({
               <div className="h-full flex items-end">
                 {statHistory.map((entry, index) => {
                   const maxValue = Math.max(
-                    ...statHistory.map((e) => e.territories)
+                    ...statHistory.map((e) => e.territories),
                   );
                   const height =
                     maxValue > 0 ? (entry.territories / maxValue) * 100 : 0;
@@ -592,7 +592,7 @@ export const PlayerDashboard = ({
                   bottom: `${
                     (statHistory.reduce(
                       (sum, entry) => sum + entry.territories,
-                      0
+                      0,
                     ) /
                       statHistory.length /
                       Math.max(...statHistory.map((e) => e.territories))) *
