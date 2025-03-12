@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   createNewGameState,
   canClaimCell,
@@ -21,7 +21,11 @@ import { PowerupActivator } from "./PowerupActivator";
 import { PowerupDisplay } from "./PowerupDisplay";
 import { PlayerDashboard } from "./PlayerDashboard";
 import AddSubreddits from "./AddSubreddit";
+import SubredditList from "./SubredditList";
 import { RetroButton } from "./RetroButton";
+
+// Import Reddit logo image
+import redditLogo from "../assets/reddit_logo.png";
 
 import {
   generatePowerups,
@@ -53,11 +57,32 @@ export const PixelTerritoryGame = () => {
   const [powerupMessage, setPowerupMessage] = useState("");
   const [showPlayerDashboard, setShowPlayerDashboard] = useState(false);
   const [showAddSubreddits, setShowAddSubreddits] = useState(false);
+  const [showList, setShowList] = useState(false);
+
+  // Ref for detecting clicks outside reddit menu
+  const redditMenuRef = useRef(null);
 
   // Save game state to local storage whenever it changes
   useEffect(() => {
     localStorage.setItem("pixelTerritoryState", JSON.stringify(gameState));
   }, [gameState]);
+
+  // Handle click outside Reddit menu to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        redditMenuRef.current &&
+        !redditMenuRef.current.contains(event.target)
+      ) {
+        setShowList(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [redditMenuRef]);
 
   // Generate daily power-ups
   useEffect(() => {
@@ -121,6 +146,15 @@ export const PixelTerritoryGame = () => {
       setGameState(updatedState);
     }
     setShowAddSubreddits(false);
+  };
+
+  const handleRemoveSubreddit = (subreddit) => {
+    const updatedSubreddits = gameState.players[
+      currentPlayer
+    ].subreddits.filter((s) => s !== subreddit);
+    handleSubredditsSubmit(updatedSubreddits);
+    // Optional: close the menu after removing
+    // setShowList(false);
   };
 
   const showPowerupResult = (message, type = "success") => {
@@ -410,8 +444,37 @@ export const PixelTerritoryGame = () => {
   const currentPlayerPowerups =
     gameState.players[currentPlayer]?.powerups || [];
 
+  // Get current player's subreddits safely
+  const currentPlayerSubreddits =
+    gameState.players[currentPlayer]?.subreddits || [];
+
   return (
     <div className="min-h-screen bg-black p-4">
+      {/* Improved Reddit Menu with proper positioning */}
+      <div ref={redditMenuRef} className="fixed top-4 left-4 z-20">
+        <button
+          onClick={() => setShowList(!showList)}
+          className="flex items-center justify-center w-12 h-12 rounded-full bg-black hover:bg-gray-900 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          aria-label="Toggle Reddit Subreddits"
+          title="Reddit Subreddits"
+        >
+          <img
+            src={redditLogo}
+            alt="Reddit Logo"
+            className="w-10 h-10 cursor-pointer hover:opacity-80 transition"
+          />
+        </button>
+
+        {showList && (
+          <div className="absolute top-14 left-0 z-30">
+            <SubredditList
+              subreddits={currentPlayerSubreddits}
+              onRemove={handleRemoveSubreddit}
+            />
+          </div>
+        )}
+      </div>
+
       <h1 className="text-3xl font-bold text-center mb-8 retro-text">
         PIXEL TERRITORY
       </h1>
@@ -459,7 +522,7 @@ export const PixelTerritoryGame = () => {
               onClick={() => setShowAddSubreddits(true)}
               className="retro-button"
             >
-              Add Subreddit
+              ADD SUBREDDIT
             </button>
           </div>
         </div>
@@ -531,9 +594,7 @@ export const PixelTerritoryGame = () => {
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-75 p-4">
           <div className="w-full max-w-md">
             <AddSubreddits
-              currentSubreddits={
-                gameState.players[currentPlayer]?.subreddits || []
-              }
+              currentSubreddits={currentPlayerSubreddits}
               onSubmit={handleSubredditsSubmit}
               onCancel={() => setShowAddSubreddits(false)}
             />
