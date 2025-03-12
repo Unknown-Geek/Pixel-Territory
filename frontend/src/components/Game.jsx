@@ -454,9 +454,11 @@ export const PixelTerritoryGame = () => {
       <div ref={redditMenuRef} className="fixed top-4 left-4 z-20">
         <button
           onClick={() => setShowList(!showList)}
-          className="flex items-center justify-center w-12 h-12 rounded-full bg-black hover:bg-gray-900 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
-          aria-label="Toggle Reddit Subreddits"
-          title="Reddit Subreddits"
+          className={`flex items-center justify-center w-12 h-12 rounded-full transition-colors duration-200 focus:outline-none ${
+            showList
+              ? "bg-gray-900 focus:ring-2 focus:ring-orange-500"
+              : "bg-black focus:ring-0"
+          }`}
         >
           <img
             src={redditLogo}
